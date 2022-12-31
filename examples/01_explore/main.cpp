@@ -10,10 +10,14 @@
 // Read comments in imgui_impl_vulkan.h.
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 #include <stdio.h>          // printf, fprintf
 #include <stdlib.h>         // abort
+#include <algorithm>
+#include <iostream>
+#include <string>
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -354,19 +358,38 @@ static void glfw_error_callback(int error, const char* description)
 
 struct CustomLayout
 {
+public:
     CustomLayout() { memset(this, 0, sizeof(*this)); }
+
+    float m_splitterXCoordinate;
+    float m_splitterXDragDelta;
 };
 
 CustomLayout g_layout = CustomLayout();
 
 namespace ImGui
 {
-    IMGUI_API bool ImGui::BeginBottomMainMenuBar();
+    IMGUI_API bool BeginBottomMainMenuBar();
 }
 
 bool ImGui::BeginBottomMainMenuBar()
 {
+    ImGuiContext& g = *GImGui;
+    ImGuiViewportP* viewport = (ImGuiViewportP*)(void*)GetMainViewport();
+    // For the main menu bar, which cannot be moved, we honor g.Style.DisplaySafeAreaPadding to ensure text can be visible on a TV set.
+    // FIXME: This could be generalized as an opt-in way to clamp window->DC.CursorStartPos to avoid SafeArea?
+    // FIXME: Consider removing support for safe area down the line... it's messy. Nowadays consoles have support for TV calibration in OS settings.
+    g.NextWindowData.MenuBarOffsetMinVal = ImVec2(g.Style.DisplaySafeAreaPadding.x, ImMax(g.Style.DisplaySafeAreaPadding.y - g.Style.FramePadding.y, 0.0f));
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+    float height = GetFrameHeight();
+    bool is_open = BeginViewportSideBar("##BottomMainMenuBar", viewport, ImGuiDir_Down, height, window_flags);
+    g.NextWindowData.MenuBarOffsetMinVal = ImVec2(0.0f, 0.0f);
 
+    if (is_open)
+        BeginMenuBar();
+    else
+        End();
+    return is_open;
 }
 
 int main(int, char**)
@@ -480,6 +503,9 @@ int main(int, char**)
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+    // My Hack
+    ImGuiViewport* pViewport = ImGui::GetMainViewport();
+
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -511,7 +537,7 @@ int main(int, char**)
 
         /* Newly Added */
 
-        // Main menu bar.
+        // Main menu bars.
         {
             if (ImGui::BeginMainMenuBar())
             {
@@ -525,22 +551,49 @@ int main(int, char**)
                 }
                 ImGui::EndMainMenuBar();
             }
+
+            if (ImGui::BeginBottomMainMenuBar())
+            {
+                ImGui::EndMainMenuBar();
+            }
         }
 
-        ImGui::Begin("Window Left", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        g_layout.m_splitterXCoordinate = pViewport->WorkPos.x + 0.8f * pViewport->WorkSize.x + g_layout.m_splitterXDragDelta;
+        ImGui::SetNextWindowPos(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y));
+        ImGui::SetNextWindowSize(ImVec2(5, pViewport->WorkSize.y));
+        ImGui::SetNextWindowBgAlpha(0.1f); // Transparent background
+        ImGuiWindowFlags SplitterFlag = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse;
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0, 0)); // Lift normal size constraint
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+        ImGui::Begin("Splitter1", &show_another_window, SplitterFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        ImGui::End();
+        if (ImGui::IsMouseHoveringRect(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y),
+                                       ImVec2(g_layout.m_splitterXCoordinate + 5.f, pViewport->WorkPos.y + pViewport->WorkSize.y), false))
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+            if(ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.1f))
+            {
+                g_layout.m_splitterXDragDelta += ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.1f).x;
+                std::cout << std::to_string(ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.1f).x) << std::endl;
+                g_layout.m_splitterXDragDelta = std::clamp(g_layout.m_splitterXDragDelta, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
+            }
+        }
+        ImGui::PopStyleVar(2);
+
+        ImGuiWindowFlags WindowFlag = ImGuiWindowFlags_NoSavedSettings;
+        ImGui::Begin("Window Left", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::End();
 
-        ImGui::Begin("Window Right", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        ImGui::Begin("Window Right", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::End();
-
 
         /***************/
 
-        /*
+        
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
-
+        /*
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         {
             static float f = 0.0f;
