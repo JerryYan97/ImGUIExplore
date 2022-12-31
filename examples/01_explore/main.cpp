@@ -361,8 +361,12 @@ struct CustomLayout
 public:
     CustomLayout() { memset(this, 0, sizeof(*this)); }
 
+    // float GetDragDelta(float currentMouseX) { return currentMouseX - m_splitterBottonDownX; }
+
     float m_splitterXCoordinate;
-    float m_splitterXDragDelta;
+
+    bool m_splitterXHeld;
+    float m_splitterBottonDownTLXDelta;
 };
 
 CustomLayout g_layout = CustomLayout();
@@ -505,6 +509,7 @@ int main(int, char**)
 
     // My Hack
     ImGuiViewport* pViewport = ImGui::GetMainViewport();
+    bool firstFrame = true;
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -558,7 +563,11 @@ int main(int, char**)
             }
         }
 
-        g_layout.m_splitterXCoordinate = pViewport->WorkPos.x + 0.8f * pViewport->WorkSize.x + g_layout.m_splitterXDragDelta;
+        if (firstFrame)
+        {
+            g_layout.m_splitterXCoordinate = pViewport->WorkPos.x + 0.8f * pViewport->WorkSize.x;
+            firstFrame = false;
+        }
         ImGui::SetNextWindowPos(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y));
         ImGui::SetNextWindowSize(ImVec2(5, pViewport->WorkSize.y));
         ImGui::SetNextWindowBgAlpha(0.1f); // Transparent background
@@ -567,18 +576,35 @@ int main(int, char**)
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
         ImGui::Begin("Splitter1", &show_another_window, SplitterFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::End();
+        ImGui::PopStyleVar(2);
+        
         if (ImGui::IsMouseHoveringRect(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y),
                                        ImVec2(g_layout.m_splitterXCoordinate + 5.f, pViewport->WorkPos.y + pViewport->WorkSize.y), false))
         {
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-            if(ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.1f))
+            if (g_layout.m_splitterXHeld == false)
             {
-                g_layout.m_splitterXDragDelta += ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.1f).x;
-                std::cout << std::to_string(ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.1f).x) << std::endl;
-                g_layout.m_splitterXDragDelta = std::clamp(g_layout.m_splitterXDragDelta, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                {
+                    g_layout.m_splitterXHeld = true;
+                    g_layout.m_splitterBottonDownTLXDelta = g_layout.m_splitterXCoordinate - ImGui::GetMousePos().x;
+                }
             }
         }
-        ImGui::PopStyleVar(2);
+
+        if (g_layout.m_splitterXHeld)
+        {
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+            {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                g_layout.m_splitterXCoordinate = ImGui::GetMousePos().x + g_layout.m_splitterBottonDownTLXDelta;
+                g_layout.m_splitterXCoordinate = std::clamp(g_layout.m_splitterXCoordinate, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
+            }
+            else
+            {
+                g_layout.m_splitterXHeld = false;
+            }
+        }
 
         ImGuiWindowFlags WindowFlag = ImGuiWindowFlags_NoSavedSettings;
         ImGui::Begin("Window Left", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
