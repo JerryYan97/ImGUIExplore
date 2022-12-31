@@ -352,23 +352,6 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-struct CustomLayout
-{
-    CustomLayout() { memset(this, 0, sizeof(*this)); }
-};
-
-CustomLayout g_layout = CustomLayout();
-
-namespace ImGui
-{
-    IMGUI_API bool ImGui::BeginBottomMainMenuBar();
-}
-
-bool ImGui::BeginBottomMainMenuBar()
-{
-
-}
-
 int main(int, char**)
 {
     // Setup GLFW window
@@ -509,34 +492,6 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        /* Newly Added */
-
-        // Main menu bar.
-        {
-            if (ImGui::BeginMainMenuBar())
-            {
-                if (ImGui::BeginMenu("File"))
-                {
-                    ImGui::EndMenu();
-                }
-                if (ImGui::BeginMenu("Edit"))
-                {
-                    ImGui::EndMenu();
-                }
-                ImGui::EndMainMenuBar();
-            }
-        }
-
-        ImGui::Begin("Window Left", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::End();
-
-        ImGui::Begin("Window Right", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::End();
-
-
-        /***************/
-
-        /*
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
@@ -573,7 +528,6 @@ int main(int, char**)
                 show_another_window = false;
             ImGui::End();
         }
-        */
 
         // Rendering
         ImGui::Render();
