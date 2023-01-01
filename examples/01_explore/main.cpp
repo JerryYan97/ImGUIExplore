@@ -356,17 +356,53 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-struct CustomLayout
+// Leaves are windows; All others are splitters.
+// Odd level splitters are left-right; even level splitters are top-down.
+class CustomLayoutNode
 {
 public:
-    CustomLayout() { memset(this, 0, sizeof(*this)); }
+    CustomLayoutNode* m_pLeft;
+    CustomLayoutNode* m_pRight;
+    CustomLayoutNode()
+        : m_pLeft(nullptr),
+          m_pRight(nullptr)
+    {}
 
-    // float GetDragDelta(float currentMouseX) { return currentMouseX - m_splitterBottonDownX; }
+    ~CustomLayoutNode()
+    {
+        if (m_pLeft) 
+        { 
+            delete m_pLeft; 
+        }
+
+        if (m_pRight)
+        {
+            delete m_pRight;
+        }
+    }
+};
+
+class CustomLayout
+{
+public:
+    CustomLayout() 
+    { 
+        memset(this, 0, sizeof(*this));
+        m_splitterWidth = 3.f;
+    }
+
+    void BeginLayout()
+    {
+
+    }
 
     float m_splitterXCoordinate;
+    float m_splitterWidth;
 
     bool m_splitterXHeld;
     float m_splitterBottonDownTLXDelta;
+
+    ImVec2 m_lastViewport;
 };
 
 CustomLayout g_layout = CustomLayout();
@@ -567,16 +603,19 @@ int main(int, char**)
         {
             g_layout.m_splitterXCoordinate = pViewport->WorkPos.x + 0.8f * pViewport->WorkSize.x;
             firstFrame = false;
+            g_layout.m_lastViewport = pViewport->WorkSize;
         }
+        /*
         ImGui::SetNextWindowPos(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y));
-        ImGui::SetNextWindowSize(ImVec2(5, pViewport->WorkSize.y));
+        ImGui::SetNextWindowSize(ImVec2(g_layout.m_splitterWidth, pViewport->WorkSize.y));
         ImGui::SetNextWindowBgAlpha(0.1f); // Transparent background
-        ImGuiWindowFlags SplitterFlag = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse;
+        ImGuiWindowFlags SplitterFlag = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0, 0)); // Lift normal size constraint
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
         ImGui::Begin("Splitter1", &show_another_window, SplitterFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::End();
         ImGui::PopStyleVar(2);
+        */
         
         if (ImGui::IsMouseHoveringRect(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y),
                                        ImVec2(g_layout.m_splitterXCoordinate + 5.f, pViewport->WorkPos.y + pViewport->WorkSize.y), false))
@@ -605,13 +644,34 @@ int main(int, char**)
                 g_layout.m_splitterXHeld = false;
             }
         }
+        else
+        {
+            if ((g_layout.m_lastViewport.x != pViewport->WorkSize.x) || (g_layout.m_lastViewport.y != pViewport->WorkSize.y))
+            {
+                float ratio = g_layout.m_splitterXCoordinate / g_layout.m_lastViewport.x;
+                g_layout.m_splitterXCoordinate = ratio * pViewport->WorkSize.x;
+                g_layout.m_splitterXCoordinate = std::clamp(g_layout.m_splitterXCoordinate, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
+            }
+        }
+        g_layout.m_lastViewport = pViewport->WorkSize;
+        
 
-        ImGuiWindowFlags WindowFlag = ImGuiWindowFlags_NoSavedSettings;
+        ImGuiWindowFlags WindowFlag = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration;
+        ImGui::SetNextWindowPos(ImVec2(pViewport->WorkPos));
+        ImVec2 leftWinSize = ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkSize.y);
+        ImGui::SetNextWindowSize(leftWinSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f);
         ImGui::Begin("Window Left", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::End();
+        ImGui::PopStyleVar(1);
 
+        float rightWinStartPosX = g_layout.m_splitterXCoordinate + g_layout.m_splitterWidth;
+        ImGui::SetNextWindowPos(ImVec2(rightWinStartPosX, pViewport->WorkPos.y));
+        ImGui::SetNextWindowSize(ImVec2(pViewport->WorkSize.x - rightWinStartPosX, pViewport->WorkSize.y));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f);
         ImGui::Begin("Window Right", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::End();
+        ImGui::PopStyleVar(1);
 
         /***************/
 
