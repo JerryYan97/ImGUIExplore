@@ -361,12 +361,17 @@ static void glfw_error_callback(int error, const char* description)
 class CustomLayoutNode
 {
 public:
-    CustomLayoutNode* m_pLeft;
-    CustomLayoutNode* m_pRight;
+    CustomLayoutNode* m_pLeft;  // Or top for the even level splitters.
+    CustomLayoutNode* m_pRight; // Or down for the even level splitters.
     CustomLayoutNode()
         : m_pLeft(nullptr),
           m_pRight(nullptr)
     {}
+
+    ImVec2 m_applyDomain; // The domain that this splitter works on or the size of the window if the node is a leaf.
+    float m_splitterStartCoordinate;
+    uint32_t m_level; // Used to determine whether it is a vertical splitter or a horizontal splitter. 
+                      // Only for a splitter.
 
     ~CustomLayoutNode()
     {
@@ -380,6 +385,31 @@ public:
             delete m_pRight;
         }
     }
+
+    void BuildNodeAndChildren()
+    {
+        if ((m_pLeft == nullptr) && (m_pRight == nullptr))
+        {
+            // It is a leaf node. We only need to build itself.
+            
+        }
+        else
+        {
+            // It is a splitter node. We need to build itself and its children.
+
+
+            // Build splitter's children if they are not nullptr.
+            if (m_pLeft)
+            {
+                m_pLeft->BuildNodeAndChildren();
+            }
+
+            if (m_pRight)
+            {
+                m_pRight->BuildNodeAndChildren();
+            }
+        }
+    }
 };
 
 class CustomLayout
@@ -389,12 +419,41 @@ public:
     { 
         memset(this, 0, sizeof(*this));
         m_splitterWidth = 3.f;
+        m_pRoot = nullptr;
+
+        // Blender default GUI layout
+        m_pRoot = new CustomLayoutNode();
+        
+        // Left and right splitter
+        m_pRoot->m_pLeft = new CustomLayoutNode();
+        m_pRoot->m_pRight = new CustomLayoutNode();
+
+        // Left splitter's top and bottom windows
+        CustomLayoutNode* pLeftSplitter = m_pRoot->m_pLeft;
+        pLeftSplitter->m_pLeft = new CustomLayoutNode();
+        pLeftSplitter->m_pRight = new CustomLayoutNode();
+
+        // Right splitter's top and bottom windows
+        CustomLayoutNode* pRightSplitter = m_pRoot->m_pRight;
+        pRightSplitter->m_pLeft = new CustomLayoutNode();
+        pRightSplitter->m_pRight = new CustomLayoutNode();
     }
 
+    // Update Dear ImGUI state
     void BeginLayout()
     {
 
     }
+
+    ~CustomLayout()
+    {
+        if (m_pRoot)
+        {
+            delete m_pRoot;
+        }
+    }
+
+    CustomLayoutNode* m_pRoot;
 
     float m_splitterXCoordinate;
     float m_splitterWidth;
@@ -660,7 +719,7 @@ int main(int, char**)
         ImGui::SetNextWindowPos(ImVec2(pViewport->WorkPos));
         ImVec2 leftWinSize = ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkSize.y);
         ImGui::SetNextWindowSize(leftWinSize);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f);
         ImGui::Begin("Window Left", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::End();
         ImGui::PopStyleVar(1);
@@ -668,7 +727,7 @@ int main(int, char**)
         float rightWinStartPosX = g_layout.m_splitterXCoordinate + g_layout.m_splitterWidth;
         ImGui::SetNextWindowPos(ImVec2(rightWinStartPosX, pViewport->WorkPos.y));
         ImGui::SetNextWindowSize(ImVec2(pViewport->WorkSize.x - rightWinStartPosX, pViewport->WorkSize.y));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f);
         ImGui::Begin("Window Right", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::End();
         ImGui::PopStyleVar(1);
