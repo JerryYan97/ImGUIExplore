@@ -356,20 +356,45 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+// Custom system start
+
+constexpr ImGuiWindowFlags TestWindowFlag = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration;
+
+void BasicTestLeftWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Left Window", nullptr, TestWindowFlag);
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
+void BasicTestRightWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Right Window", nullptr, TestWindowFlag);
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
+// Set custom windows properties. Names, styles...
+// Positions and sizes are handled by the layout.
+typedef void (*CustomWindowFunc)();
+
 // Leaves are windows; All others are logical domain.
-// Odd level splitters are left-right; even level splitters are top-down. (Starting from 1)
+// Odd level domain splitters are left-right; even level domain splitters are top-down. (Level number starting from 1)
 class CustomLayoutNode
 {
 public:
-    CustomLayoutNode(bool isSplitter, uint32_t level, ImVec2 domainPos, ImVec2 domainSize, float splitterPos=-1.f)
+    CustomLayoutNode(bool isLogicalDomain, uint32_t level, ImVec2 domainPos, ImVec2 domainSize, float splitterPos=-1.f, CustomWindowFunc customFunc=nullptr)
         : m_pLeft(nullptr),
           m_pRight(nullptr),
           m_level(level),
           m_domainPos(domainPos),
           m_domainSize(domainSize),
           m_splitterStartCoordinate(splitterPos),
-          m_isSplitter(isSplitter),
-          m_splitterWidth(3.f)
+          m_splitterWidth(3.f),
+          m_pfnCustomWindowFunc(customFunc),
+          m_isLogicalDomain(isLogicalDomain)
     {}
 
     ~CustomLayoutNode()
@@ -394,9 +419,9 @@ public:
 
     ImVec2 GetSplitterPos() 
     { 
-        if ((m_pLeft != nullptr) || (m_pRight != nullptr))
+        if (m_isLogicalDomain)
         {
-            if (m_level % 2 == 0)
+            if (m_level % 2 == 1)
             {
                 // Left-right splitter
                 return ImVec2(m_domainPos.x + m_splitterStartCoordinate, m_domainPos.y);
@@ -416,9 +441,9 @@ public:
 
     ImVec2 GetSplitterSize()
     {
-        if ((m_pLeft != nullptr) || (m_pRight != nullptr))
+        if (m_isLogicalDomain)
         {
-            if (m_level % 2 == 0)
+            if (m_level % 2 == 1)
             {
                 // Left-right splitter
                 return ImVec2(m_splitterWidth, m_domainSize.y);
@@ -438,11 +463,9 @@ public:
 
     void BeginEndNodeAndChildren()
     {
-        if (m_isSplitter)
+        if ((m_pLeft != nullptr) || (m_pRight != nullptr))
         {
-            // Begin splitter itself.
-
-            // Begin splitter's children if they are not nullptr.
+            // It is a logical domain. Calling its children instead.
             if (m_pLeft)
             {
                 m_pLeft->BeginEndNodeAndChildren();
@@ -455,8 +478,15 @@ public:
         }
         else
         {
-            // Begin the window itself.
-            
+            // Begin the window itself. We can add varities here with various methods.
+            ImGui::SetNextWindowPos(m_domainPos);
+            ImGui::SetNextWindowSize(m_domainSize);
+
+            // Set custom windows properties.
+            if (m_pfnCustomWindowFunc)
+            {
+                m_pfnCustomWindowFunc();
+            }
         }
     }
 
@@ -473,13 +503,16 @@ private:
     
     // Domain represents the screen area that a node occpies. For windows, their domains are just same as the the their
     // starting position and size. But for splitters, their domains represent the area it splits
-    ImVec2 m_domainPos;  // 
-    ImVec2 m_domainSize; //
+    ImVec2 m_domainPos;  
+    ImVec2 m_domainSize;
 
     float    m_splitterStartCoordinate;
-    bool     m_isSplitter;
 
     const float m_splitterWidth;
+
+    CustomWindowFunc m_pfnCustomWindowFunc;
+
+    bool m_isLogicalDomain;
 };
 
 // We only need to build the splitter structure at first. We can auto-generate windows from the splitters.
@@ -506,8 +539,6 @@ public:
         pRightSplitter->m_pLeft = new CustomLayoutNode();
         pRightSplitter->m_pRight = new CustomLayoutNode();
         */
-
-        TestingLayout();
     }
 
     // A splitter in middle. Thin right window and wider left window.
@@ -519,17 +550,16 @@ public:
         // interaction. BeginEndNodeAndChildren(Current Cursior). Finally test the splitter build (BuildWindows()).
 
         // Central splitter.
-        m_pRoot = new CustomLayoutNode(true, 1, ImVec2(pViewport->WorkPos.x * 0.8, pViewport->WorkPos.y), 
-                                       ImVec2(m_splitterWidth, pViewport->WorkSize.y));
+        m_pRoot = new CustomLayoutNode(true, 1, pViewport->WorkPos, pViewport->WorkSize, 0.8f * pViewport->WorkSize.x);
 
         ImVec2 splitterPos = m_pRoot->GetSplitterPos();
         ImVec2 splitterSize = m_pRoot->GetSplitterSize();
 
-        m_pRoot->SetLeftChild(new CustomLayoutNode(false, 2, pViewport->WorkPos, 
-                                                   ImVec2(splitterPos.x, splitterSize.y)));
-        m_pRoot->SetRightChild(new CustomLayoutNode(false, 2, ImVec2(splitterPos.x + splitterSize.x, splitterPos.y), 
+        m_pRoot->SetLeftChild(new CustomLayoutNode(false, 2, pViewport->WorkPos, ImVec2(splitterPos.x, splitterSize.y),
+                                                   -1.f, BasicTestLeftWindow));
+        m_pRoot->SetRightChild(new CustomLayoutNode(false, 2, ImVec2(splitterPos.x + splitterSize.x, splitterPos.y),
                                                     ImVec2(pViewport->WorkSize.x - splitterPos.x - splitterSize.x,
-                                                           splitterSize.y)));
+                                                           splitterSize.y), -1.f, BasicTestRightWindow));
         
     }
 
@@ -540,9 +570,12 @@ public:
     }
 
     // Update Dear ImGUI state
-    void BeginLayout()
+    void BeginEndLayout()
     {
-
+        if (m_pRoot != nullptr)
+        {
+            m_pRoot->BeginEndNodeAndChildren();
+        }
     }
 
     ~CustomLayout()
@@ -562,8 +595,6 @@ public:
 
     ImVec2 m_lastViewport;
 };
-
-CustomLayout g_layout = CustomLayout();
 
 namespace ImGui
 {
@@ -705,6 +736,8 @@ int main(int, char**)
     ImGuiViewport* pViewport = ImGui::GetMainViewport();
     bool firstFrame = true;
 
+    CustomLayout myLayout;
+
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -757,24 +790,15 @@ int main(int, char**)
             }
         }
 
+        
         if (firstFrame)
         {
-            g_layout.m_splitterXCoordinate = pViewport->WorkPos.x + 0.8f * pViewport->WorkSize.x;
-            firstFrame = false;
-            g_layout.m_lastViewport = pViewport->WorkSize;
+            myLayout.TestingLayout();
         }
-        /*
-        ImGui::SetNextWindowPos(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y));
-        ImGui::SetNextWindowSize(ImVec2(g_layout.m_splitterWidth, pViewport->WorkSize.y));
-        ImGui::SetNextWindowBgAlpha(0.1f); // Transparent background
-        ImGuiWindowFlags SplitterFlag = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0, 0)); // Lift normal size constraint
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
-        ImGui::Begin("Splitter1", &show_another_window, SplitterFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::End();
-        ImGui::PopStyleVar(2);
-        */
         
+        myLayout.BeginEndLayout();
+
+        /*
         if (ImGui::IsMouseHoveringRect(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y),
                                        ImVec2(g_layout.m_splitterXCoordinate + 5.f, pViewport->WorkPos.y + pViewport->WorkSize.y), false))
         {
@@ -830,6 +854,8 @@ int main(int, char**)
         ImGui::Begin("Window Right", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::End();
         ImGui::PopStyleVar(1);
+        */
+
 
         /***************/
 
