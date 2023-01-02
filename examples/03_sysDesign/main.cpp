@@ -360,6 +360,7 @@ static void glfw_error_callback(int error, const char* description)
 
 constexpr ImGuiWindowFlags TestWindowFlag = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration;
 
+
 void BasicTestLeftWindow()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
@@ -376,6 +377,38 @@ void BasicTestRightWindow()
     ImGui::PopStyleVar(1);
 }
 
+void BlenderStyleTestLeftUpWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Left-Up Window", nullptr, TestWindowFlag);
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
+void BlenderStyleTestLeftDownWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Left-Down Window", nullptr, TestWindowFlag);
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
+void BlenderStyleTestRightUpWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Right-Up Window", nullptr, TestWindowFlag);
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
+void BlenderStyleTestRightDownWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Right-Down Window", nullptr, TestWindowFlag);
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
 // Set custom windows properties. Names, styles...
 // Positions and sizes are handled by the layout.
 typedef void (*CustomWindowFunc)();
@@ -385,7 +418,12 @@ typedef void (*CustomWindowFunc)();
 class CustomLayoutNode
 {
 public:
-    CustomLayoutNode(bool isLogicalDomain, uint32_t level, ImVec2 domainPos, ImVec2 domainSize, float splitterPos=-1.f, CustomWindowFunc customFunc=nullptr)
+    CustomLayoutNode(bool isLogicalDomain, 
+                     uint32_t level, 
+                     ImVec2 domainPos, 
+                     ImVec2 domainSize, 
+                     float splitterPos = -1.f, 
+                     CustomWindowFunc customFunc = nullptr)
         : m_pLeft(nullptr),
           m_pRight(nullptr),
           m_level(level),
@@ -416,6 +454,7 @@ public:
     CustomLayoutNode* GetRightChild() { return m_pRight; }
     ImVec2 GetDomainPos() { return m_domainPos; }
     ImVec2 GetDomainSize() { return m_domainSize; }
+    uint32_t GetLevel() { return m_level; }
 
     ImVec2 GetSplitterPos() 
     { 
@@ -478,7 +517,7 @@ public:
         }
         else
         {
-            // Begin the window itself. We can add varities here with various methods.
+            // Begin the window itself. Calling the custom function pointer.
             ImGui::SetNextWindowPos(m_domainPos);
             ImGui::SetNextWindowSize(m_domainSize);
 
@@ -488,6 +527,11 @@ public:
                 m_pfnCustomWindowFunc();
             }
         }
+    }
+
+    CustomLayoutNode* GetHoverSplitter()
+    {
+
     }
 
     void BuildWindows()
@@ -520,25 +564,14 @@ class CustomLayout
 {
 public:
     CustomLayout()
+        : m_pRoot(nullptr),
+          m_splitterXCoordinate(-1.f),
+          m_splitterHeld(false),
+          m_splitterBottonDownDelta(ImVec2(0.f, 0.f)),
+          m_lastViewport(ImVec2(0.f, 0.f)),
+          m_heldMouseCursor(0)
     {
-        /*
-        // Blender default GUI layout
-        m_pRoot = new CustomLayoutNode(1, pViewport->WorkSize);
         
-        // Left and right splitter
-        m_pRoot->m_pLeft = new CustomLayoutNode();
-        m_pRoot->m_pRight = new CustomLayoutNode();
-
-        // Left splitter's top and bottom windows
-        CustomLayoutNode* pLeftSplitter = m_pRoot->m_pLeft;
-        pLeftSplitter->m_pLeft = new CustomLayoutNode();
-        pLeftSplitter->m_pRight = new CustomLayoutNode();
-
-        // Right splitter's top and bottom windows
-        CustomLayoutNode* pRightSplitter = m_pRoot->m_pRight;
-        pRightSplitter->m_pLeft = new CustomLayoutNode();
-        pRightSplitter->m_pRight = new CustomLayoutNode();
-        */
     }
 
     // A splitter in middle. Thin right window and wider left window.
@@ -549,7 +582,7 @@ public:
         // Basic testing layout - Note: We first test the rendering (BeginEndNodeAndChildren(No Arg)). Then, test the
         // interaction. BeginEndNodeAndChildren(Current Cursior). Finally test the splitter build (BuildWindows()).
 
-        // Central splitter.
+        // Central domain and its splitter.
         m_pRoot = new CustomLayoutNode(true, 1, pViewport->WorkPos, pViewport->WorkSize, 0.8f * pViewport->WorkSize.x);
 
         ImVec2 splitterPos = m_pRoot->GetSplitterPos();
@@ -567,15 +600,96 @@ public:
     // 
     void BlenderStartLayout()
     {
+        ImGuiViewport* pViewport = ImGui::GetMainViewport();
+
+        // Blender default GUI layout
+        m_pRoot = new CustomLayoutNode(true, 1, pViewport->WorkPos, pViewport->WorkSize, 0.8f * pViewport->WorkSize.x);
+
+        ImVec2 rootSplitterPos = m_pRoot->GetSplitterPos();
+        ImVec2 rootSplitterSize = m_pRoot->GetSplitterSize();
+
+        // Left and right splitter
+        m_pRoot->SetLeftChild(new CustomLayoutNode(true, 2, pViewport->WorkPos,
+                                                   ImVec2(rootSplitterPos.x, rootSplitterSize.y), 
+                                                   0.8f * pViewport->WorkSize.y));
+        m_pRoot->SetRightChild(new CustomLayoutNode(true, 2, pViewport->WorkPos, 
+                                                    ImVec2(rootSplitterPos.x + rootSplitterSize.x, rootSplitterSize.y),
+                                                    0.2f * pViewport->WorkSize.y));
+
+        // Left splitter's top and bottom windows
+        {
+            CustomLayoutNode* pLeftDomain = m_pRoot->GetLeftChild();
+            ImVec2 leftSplitterPos = pLeftDomain->GetSplitterPos();
+            ImVec2 leftSplitterSize = pLeftDomain->GetSplitterSize();
+
+            pLeftDomain->SetLeftChild(new CustomLayoutNode(false, 3, pLeftDomain->GetDomainPos(),
+                                                           ImVec2(pLeftDomain->GetDomainSize().x, leftSplitterPos.y),
+                                                           -1.f, BlenderStyleTestLeftUpWindow));
+            pLeftDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(pLeftDomain->GetDomainPos().x, leftSplitterPos.y + leftSplitterSize.y),
+                                                            ImVec2(leftSplitterSize.x, pLeftDomain->GetDomainSize().y - leftSplitterPos.y - leftSplitterSize.y),
+                                                            -1.f, BlenderStyleTestLeftDownWindow));
+        }
+        
+
+        // Right splitter's top and bottom windows
+        {
+            CustomLayoutNode* pRightDomain = m_pRoot->GetRightChild();
+            ImVec2 rightSplitterPos = pRightDomain->GetSplitterPos();
+            ImVec2 rightSplitterSize = pRightDomain->GetSplitterSize();
+
+            pRightDomain->SetLeftChild(new CustomLayoutNode(false, 3, pRightDomain->GetDomainPos(),
+                                                            ImVec2(pRightDomain->GetDomainSize().x, rightSplitterPos.y),
+                                                            -1.f, BlenderStyleTestRightUpWindow));
+            pRightDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(pRightDomain->GetDomainPos().x, rightSplitterPos.y + rightSplitterSize.y),
+                                                             ImVec2(rightSplitterSize.x, pRightDomain->GetDomainSize().y - rightSplitterPos.y - rightSplitterSize.y),
+                                                             -1.f, BlenderStyleTestRightDownWindow));
+        }
     }
 
     // Update Dear ImGUI state
     void BeginEndLayout()
     {
+        /*
+        ImGuiViewport* pViewport = ImGui::GetMainViewport();
+
+        // Dealing with the mouse interactions.
+        if (m_splitterHeld == false)
+        {
+            CustomLayoutNode* pSplitterDomain = m_pRoot->GetHoverSplitter();
+            if (pSplitterDomain)
+            {
+                // If the mouse cursor hovers on a splitter, then we need to change the appearance of the cursor and
+                // check whether there is a click event in the event queue. If there is a click event, then the
+                // splitter is occupied by the mouse.
+                bool isLeftRightSplitter = (pSplitterDomain->GetLevel() % 2 == 1);
+
+                isLeftRightSplitter ? ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW) : 
+                                      ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                {
+                    m_splitterHeld = true;
+
+                    ImVec2 splitterPos = pSplitterDomain->GetSplitterPos();
+                    ImVec2 mousePos = ImGui::GetMousePos();
+                    m_splitterBottonDownDelta = ImVec2(splitterPos.x - mousePos.x, splitterPos.y - mousePos.y);
+                    
+                    m_pHeldSplitterDomain = pSplitterDomain;
+                }
+            }
+        }
+        else
+        {
+
+        }
+        */
+        // Putting windows data into Dear ImGui's state.
         if (m_pRoot != nullptr)
         {
             m_pRoot->BeginEndNodeAndChildren();
         }
+
+        // m_lastViewport = pViewport->WorkSize;
     }
 
     ~CustomLayout()
@@ -591,7 +705,9 @@ public:
     float m_splitterXCoordinate;
 
     bool m_splitterHeld;
-    float m_splitterBottonDownTLXDelta;
+    ImVec2 m_splitterBottonDownDelta;
+    int m_heldMouseCursor; // ImGuiMouseCursor_ Enum.
+    CustomLayoutNode* m_pHeldSplitterDomain;
 
     ImVec2 m_lastViewport;
 };
@@ -793,7 +909,8 @@ int main(int, char**)
         
         if (firstFrame)
         {
-            myLayout.TestingLayout();
+            // myLayout.TestingLayout();
+            myLayout.BlenderStartLayout();
         }
         
         myLayout.BeginEndLayout();
