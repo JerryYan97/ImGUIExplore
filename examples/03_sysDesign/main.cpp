@@ -465,13 +465,13 @@ public:
     {}
 
     // For the window node only
-    CustomLayoutNode()
+    CustomLayoutNode(CustomWindowFunc customFunc)
         : m_splitterWidth(2.f),
           m_level(0),
           m_domainPos(ImVec2(0.f, 0.f)),
           m_domainSize(ImVec2(0.f, 0.f)),
-          m_pfnCustomWindowFunc(nullptr),
-          m_isLogicalDomain(true),
+          m_pfnCustomWindowFunc(customFunc),
+          m_isLogicalDomain(false),
           m_pLeft(nullptr),
           m_pRight(nullptr),
           m_splitterRatio(0)
@@ -512,9 +512,17 @@ public:
     void SetDomainPos(ImVec2 pos) { m_domainPos = pos; }
     void SetDomainSize(ImVec2 size) { m_domainSize = size; }
 
-    // TODO: When setting children, we can set their level number automatically.
-    void SetLeftChild(CustomLayoutNode* pNode) { m_pLeft = pNode; }
-    void SetRightChild(CustomLayoutNode* pNode) { m_pRight = pNode; }
+    void SetLeftChild(CustomLayoutNode* pNode) 
+    {
+        m_pLeft = pNode;
+        m_pLeft->m_level = m_level + 1;
+    }
+
+    void SetRightChild(CustomLayoutNode* pNode) 
+    { 
+        m_pRight = pNode;
+        m_pRight->m_level = m_level + 1;
+    }
 
     void BeginEndNodeAndChildren()
     {
@@ -633,10 +641,10 @@ public:
         // interaction. BeginEndNodeAndChildren(Current Cursior). Finally test the splitter build (BuildWindows()).
 
         // Central domain and its splitter.
-        m_pRoot = new CustomLayoutNode(true, 1, pViewport->WorkPos, pViewport->WorkSize, 0.8f);
+        m_pRoot = new CustomLayoutNode(pViewport->WorkPos, pViewport->WorkSize, 0.8f);
 
-        m_pRoot->SetLeftChild(new CustomLayoutNode(false, 2, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BasicTestLeftWindow));
-        m_pRoot->SetRightChild(new CustomLayoutNode(false, 2, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BasicTestRightWindow));
+        m_pRoot->SetLeftChild(new CustomLayoutNode(BasicTestLeftWindow));
+        m_pRoot->SetRightChild(new CustomLayoutNode(BasicTestRightWindow));
     }
 
     // A vertical splitter in middle. A horizontal splitter at left. A horizontal splitter at right.
@@ -645,23 +653,23 @@ public:
         ImGuiViewport* pViewport = ImGui::GetMainViewport();
 
         // Blender default GUI layout
-        m_pRoot = new CustomLayoutNode(true, 1, pViewport->WorkPos, pViewport->WorkSize, 0.8f);
+        m_pRoot = new CustomLayoutNode(pViewport->WorkPos, pViewport->WorkSize, 0.8f);
 
         // Left and right splitter
-        m_pRoot->SetLeftChild(new CustomLayoutNode(true, 2, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), 0.8f));
-        m_pRoot->SetRightChild(new CustomLayoutNode(true, 2, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), 0.3f));
+        m_pRoot->SetLeftChild(new CustomLayoutNode(0.8f));
+        m_pRoot->SetRightChild(new CustomLayoutNode(0.3f));
 
         // Left splitter's top and bottom windows
         CustomLayoutNode* pLeftDomain = m_pRoot->GetLeftChild();
 
-        pLeftDomain->SetLeftChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestLeftUpWindow));
-        pLeftDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestLeftDownWindow));
+        pLeftDomain->SetLeftChild(new CustomLayoutNode(BlenderStyleTestLeftUpWindow));
+        pLeftDomain->SetRightChild(new CustomLayoutNode(BlenderStyleTestLeftDownWindow));
         
         // Right splitter's top and bottom windows
         CustomLayoutNode* pRightDomain = m_pRoot->GetRightChild();
 
-        pRightDomain->SetLeftChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestRightUpWindow));
-        pRightDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestRightDownWindow));
+        pRightDomain->SetLeftChild(new CustomLayoutNode(BlenderStyleTestRightUpWindow));
+        pRightDomain->SetRightChild(new CustomLayoutNode(BlenderStyleTestRightDownWindow));
     }
 
     // Update Dear ImGUI state
@@ -941,8 +949,8 @@ int main(int, char**)
         
         if (firstFrame)
         {
-            myLayout.TestingLayout();
-            // myLayout.BlenderStartLayout();
+            // myLayout.TestingLayout();
+            myLayout.BlenderStartLayout();
             firstFrame = false;
         }
         
