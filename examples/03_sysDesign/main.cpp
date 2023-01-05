@@ -764,38 +764,25 @@ public:
                                                    ImVec2(rootSplitterPos.x, rootSplitterSize.y), 
                                                    0.8f * pViewport->WorkSize.y));
 
-        m_pRoot->SetRightChild(new CustomLayoutNode(false, 2, ImVec2(rootSplitterPos.x + rootSplitterSize.x, rootSplitterPos.y),
+        m_pRoot->SetRightChild(new CustomLayoutNode(true, 2, ImVec2(rootSplitterPos.x + rootSplitterSize.x, rootSplitterPos.y),
                                                     ImVec2(pViewport->WorkSize.x - rootSplitterPos.x - rootSplitterSize.x,
-                                                           rootSplitterSize.y), -1.f, BasicTestRightWindow));
+                                                           rootSplitterSize.y), 0.3f * pViewport->WorkSize.y));
 
         // Left splitter's top and bottom windows
         CustomLayoutNode* pLeftDomain = m_pRoot->GetLeftChild();
         ImVec2 leftSplitterPos = pLeftDomain->GetSplitterPos();
         ImVec2 leftSplitterSize = pLeftDomain->GetSplitterSize();
 
-        pLeftDomain->SetLeftChild(new CustomLayoutNode(false, 3, pLeftDomain->GetDomainPos(),
-                                                       ImVec2(pLeftDomain->GetDomainSize().x, leftSplitterPos.y),
-                                                       -1.f, BlenderStyleTestLeftUpWindow));
-        pLeftDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(pLeftDomain->GetDomainPos().x, leftSplitterPos.y + leftSplitterSize.y),
-                                                        ImVec2(leftSplitterSize.x, pLeftDomain->GetDomainSize().y - leftSplitterPos.y - leftSplitterSize.y),
-                                                        -1.f, BlenderStyleTestLeftDownWindow));
-            
+        pLeftDomain->SetLeftChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestLeftUpWindow));
+        pLeftDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestLeftDownWindow));
         
-        
-
         // Right splitter's top and bottom windows
-        /*
         CustomLayoutNode* pRightDomain = m_pRoot->GetRightChild();
         ImVec2 rightSplitterPos = pRightDomain->GetSplitterPos();
         ImVec2 rightSplitterSize = pRightDomain->GetSplitterSize();
 
-        pRightDomain->SetLeftChild(new CustomLayoutNode(false, 3, pRightDomain->GetDomainPos(),
-                                                        ImVec2(pRightDomain->GetDomainSize().x, rightSplitterPos.y),
-                                                        -1.f, BlenderStyleTestRightUpWindow));
-        pRightDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(pRightDomain->GetDomainPos().x, rightSplitterPos.y + rightSplitterSize.y),
-                                                         ImVec2(rightSplitterSize.x, pRightDomain->GetDomainSize().y - rightSplitterPos.y - rightSplitterSize.y),
-                                                         -1.f, BlenderStyleTestRightDownWindow));
-        */
+        pRightDomain->SetLeftChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestRightUpWindow));
+        pRightDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestRightDownWindow));
     }
 
     // Update Dear ImGUI state
