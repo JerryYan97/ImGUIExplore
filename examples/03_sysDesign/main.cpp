@@ -535,50 +535,139 @@ public:
         }
     }
 
-    void ResizeChildrenNode()
+    void ResizeChildrenNodes()
     {
         if (m_isLogicalDomain)
         {
-            ImVec2 leftChildLastPos  = m_pLeft->GetDomainPos();
-            ImVec2 leftChildLastSize = m_pLeft->GetDomainSize();
-
-            ImVec2 rightChildLastPos  = m_pRight->GetDomainPos();
-            ImVec2 rightChildLastSize = m_pRight->GetDomainSize();
-
             ImVec2 splitterPos = GetSplitterPos();
             ImVec2 splitterSize = GetSplitterSize();
 
             if (m_level % 2 == 1)
             {
-                // Left-right
-                float leftChildRatio  = (m_pLeft->m_splitterStartCoordinate - leftChildLastPos.x) / 
-                                        leftChildLastSize.x;
-                float rightChildRatio = (m_pRight->m_splitterStartCoordinate - rightChildLastPos.x) / 
-                                        rightChildLastSize.x;
+                // This node is a left-right domain. If its children are domains, then they are top-bottom domains.
+                // m_pLeft->ResizeNode(m_domainPos, ImVec2(splitterPos.x - m_domainPos.x, m_domainSize.y));
+                // m_pRight->ResizeNode(ImVec2(splitterPos.x + splitterSize.x, m_domainPos.y),
+                //                      ImVec2(m_domainSize.x - m_pRight->GetDomainPos().x, m_domainSize.y));
 
-                m_pLeft->SetDomainPos(m_domainPos);
-                m_pLeft->SetDomainSize(ImVec2(splitterPos.x - m_domainPos.x, m_domainSize.y));
-                m_pLeft->SetSplitterStartCoord(m_domainPos.x + leftChildRatio * m_domainSize.x);
+                // m_pLeft->SetDomainPos(m_domainPos);
+                // m_pLeft->SetDomainSize(ImVec2(splitterPos.x - m_domainPos.x, m_domainSize.y));
+                
 
-                m_pRight->SetDomainPos(ImVec2(splitterPos.x + splitterSize.x, m_domainPos.y));
-                m_pRight->SetDomainSize(ImVec2(m_domainSize.x - m_pRight->GetDomainPos().x, m_domainSize.y));
-                m_pRight->SetSplitterStartCoord()
+
+                /*
+                if (m_pLeft->IsLogicalDomain())
+                {
+                    
+                    float leftChildRatio = (m_pLeft->m_splitterStartCoordinate - leftChildLastPos.x) / 
+                                           leftChildLastSize.x;
+                    m_pLeft->SetSplitterStartCoord(m_domainPos.x + leftChildRatio * m_domainSize.x);
+                    
+                }
+                */
+
+                // m_pRight->SetDomainPos(ImVec2(splitterPos.x + splitterSize.x, m_domainPos.y));
+                // m_pRight->SetDomainSize(ImVec2(m_domainSize.x - m_pRight->GetDomainPos().x, m_domainSize.y));
+
+                /*
+                if (m_pRight->IsLogicalDomain())
+                {
+                    float rightChildRatio = (m_pRight->m_splitterStartCoordinate - rightChildLastPos.x) /
+                                            rightChildLastSize.x;
+                    m_pRight->SetSplitterStartCoord();
+                }
+                */
             }
             else
             {
                 // Top-down
+                // m_pLeft->ResizeNode(m_domainPos, ImVec2(m_domainSize.x, m_splitterStartCoordinate));
+                /*
                 float topChildRatio    = (m_pLeft->m_splitterStartCoordinate - leftChildLastPos.y) /
                                          leftChildLastSize.y;
                 float bottomChildRatio = (m_pRight->m_splitterStartCoordinate - rightChildLastPos.y) /
                                          rightChildLastSize.y;
+                */
             }
 
+            if (m_pLeft)
+            {
+                m_pLeft->ResizeChildrenNodes();
+            }
 
+            if (m_pRight)
+            {
+                m_pRight->ResizeChildrenNodes();
+            }
         }
         else
         {
             std::cerr << "ERROR: ResizeNodeAndChildren() called by a Window." << std::endl;
         }
+    }
+
+    // Feed in new position and size and keep the original ratio.
+    void ResizeNodeAndChildren(
+        ImVec2 newPos,
+        ImVec2 newSize)
+    {
+        // Resize this node.
+        float oldSplittedAxisLen = -1.f;
+        float oldSplittedAxisPos = -1.f;
+
+        float newSplittedAxisLen = -1.f;
+        float newSplittedAxisPos = -1.f;
+
+        if (m_level % 2 == 1)
+        {
+            oldSplittedAxisLen = m_domainSize.x;
+            oldSplittedAxisPos = m_domainPos.x;
+
+            newSplittedAxisLen = newSize.x;
+            newSplittedAxisPos = newPos.x;
+        }
+        else
+        {
+            oldSplittedAxisLen = m_domainSize.y;
+            oldSplittedAxisPos = m_domainPos.y;
+
+            newSplittedAxisLen = newSize.y;
+            newSplittedAxisPos = newPos.y;
+        }
+
+        if (m_isLogicalDomain)
+        {
+            float ratio = (GetSplitterStartCoord() - oldSplittedAxisPos) / oldSplittedAxisLen;
+            m_splitterStartCoordinate = newSplittedAxisPos + ratio * newSplittedAxisLen;
+        }        
+        
+        m_domainPos = newPos;
+        m_domainSize = newSize;
+
+        // If this node is a logical domain, then we need to also calculate new pos and domains for its children and
+        // call their resize function.
+        if (m_isLogicalDomain)
+        {
+            ImVec2 splitterPos = GetSplitterPos();
+            ImVec2 splitterSize = GetSplitterSize();
+
+            if (m_level % 2 == 1)
+            {
+                m_pLeft->ResizeNodeAndChildren(m_domainPos, ImVec2(splitterPos.x - m_domainPos.x, m_domainSize.y));
+                m_pRight->ResizeNodeAndChildren(ImVec2(splitterPos.x + splitterSize.x, m_domainPos.y),
+                                                ImVec2(m_domainSize.x - (splitterPos.x - m_domainPos.x + splitterSize.x),
+                                                       m_domainSize.y));
+            }
+            else
+            {
+                m_pLeft->ResizeNodeAndChildren(m_domainPos, ImVec2(m_domainSize.x, 
+                                                                   m_splitterStartCoordinate - m_domainPos.y));
+                m_pRight->ResizeNodeAndChildren(ImVec2(m_domainPos.x, m_splitterStartCoordinate + splitterSize.y), 
+                                                ImVec2(m_domainSize.x,
+                                                       m_domainSize.y - 
+                                                       (m_splitterStartCoordinate - m_domainPos.y + splitterSize.y)));
+            }
+        }
+        
     }
 
     CustomLayoutNode* GetHoverSplitter()
@@ -592,6 +681,16 @@ public:
     }
 
 private:
+    // Feed in new position and size and keep the original ratio.
+    /*
+    void ResizeNode(
+        ImVec2 newPos,
+        ImVec2 newSize)
+    {
+
+    }
+    */
+
     CustomLayoutNode* m_pLeft;  // Or top for the even level splitters.
     CustomLayoutNode* m_pRight; // Or down for the even level splitters.
     uint32_t          m_level;  // Used to determine whether it is a vertical splitter or a horizontal splitter. 
@@ -668,11 +767,6 @@ public:
         m_pRoot->SetRightChild(new CustomLayoutNode(false, 2, ImVec2(rootSplitterPos.x + rootSplitterSize.x, rootSplitterPos.y),
                                                     ImVec2(pViewport->WorkSize.x - rootSplitterPos.x - rootSplitterSize.x,
                                                            rootSplitterSize.y), -1.f, BasicTestRightWindow));
-        /*
-        m_pRoot->SetRightChild(new CustomLayoutNode(true, 2, pViewport->WorkPos, 
-                                                    ImVec2(rootSplitterPos.x + rootSplitterSize.x, rootSplitterSize.y),
-                                                    0.2f * pViewport->WorkSize.y));
-        */
 
         // Left splitter's top and bottom windows
         CustomLayoutNode* pLeftDomain = m_pRoot->GetLeftChild();
@@ -712,16 +806,16 @@ public:
         // Dealing with viewport resize
         if ((pViewport->WorkSize.x != m_lastViewport.x) || (pViewport->WorkSize.y != m_lastViewport.y))
         {
-            float ratio = m_pRoot->GetSplitterStartCoord() / m_pRoot->GetDomainSize().x;
-            m_pRoot->SetDomainPos(pViewport->WorkPos);
-            m_pRoot->SetDomainSize(pViewport->WorkSize);
-            m_pRoot->SetSplitterStartCoord(pViewport->WorkSize.x * ratio);
-            m_pRoot->ResizeNodeAndChildren();
+            // float ratio = m_pRoot->GetSplitterStartCoord() / m_pRoot->GetDomainSize().x;
+            // m_pRoot->SetDomainPos(pViewport->WorkPos);
+            // m_pRoot->SetDomainSize(pViewport->WorkSize);
+            // m_pRoot->SetSplitterStartCoord(pViewport->WorkSize.x * ratio);
+            m_pRoot->ResizeNodeAndChildren(pViewport->WorkPos, pViewport->WorkSize);
         }
 
         // Dealing with the mouse interactions.
-        if (m_splitterHeld == false)
-        {
+        //if (m_splitterHeld == false)
+        //{
             /* TODO: Impl and test the viewport resize logic first.
             CustomLayoutNode* pSplitterDomain = m_pRoot->GetHoverSplitter();
             if (pSplitterDomain)
@@ -755,11 +849,11 @@ public:
                 g_layout.m_splitterXCoordinate = std::clamp(g_layout.m_splitterXCoordinate, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
             }
             */
-        }
-        else
-        {
+        //}
+        //else
+        //{
 
-        }
+        //}
         
         // Putting windows data into Dear ImGui's state.
         if (m_pRoot != nullptr)
