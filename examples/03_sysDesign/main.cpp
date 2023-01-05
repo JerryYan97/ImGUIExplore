@@ -361,7 +361,6 @@ static void glfw_error_callback(int error, const char* description)
 
 constexpr ImGuiWindowFlags TestWindowFlag = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration;
 
-
 void BasicTestLeftWindow()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
@@ -424,19 +423,20 @@ public:
                      uint32_t level, 
                      ImVec2 domainPos, 
                      ImVec2 domainSize, 
-                     float splitterPos = -1.f, 
+                     float splitterRatio, 
                      CustomWindowFunc customFunc = nullptr)
         : m_pLeft(nullptr),
           m_pRight(nullptr),
           m_level(level),
           m_domainPos(domainPos),
           m_domainSize(domainSize),
-          m_splitterStartCoordinate(splitterPos),
+          m_splitterRatio(splitterRatio),
           m_splitterWidth(2.f),
           m_pfnCustomWindowFunc(customFunc),
           m_isLogicalDomain(isLogicalDomain)
     {}
 
+    // For the root logical domain node only.
     CustomLayoutNode(ImVec2 domainPos, 
                      ImVec2 domainSize, 
                      float  splitterRatio)
@@ -447,18 +447,35 @@ public:
           m_pfnCustomWindowFunc(nullptr),
           m_isLogicalDomain(true),
           m_pLeft(nullptr),
-          m_pRight(nullptr)
-    {
-        // For the root logical domain node only.
-        m_splitterStartCoordinate = m_domainPos.x + splitterRatio * m_domainSize.x;
-    }
+          m_pRight(nullptr),
+          m_splitterRatio(splitterRatio)
+    {}
 
-    CustomLayoutNode(float    splitterRatio,
-                     uint32_t level)
-        : m_splitterWidth(2.f)
-    {
-        // For the non-root logical domain node only.
-    }
+    // For the non-root logical domain node only.
+    CustomLayoutNode(float splitterRatio)
+        : m_splitterWidth(2.f),
+          m_level(0),
+          m_domainPos(ImVec2(0.f, 0.f)),
+          m_domainSize(ImVec2(0.f, 0.f)),
+          m_pfnCustomWindowFunc(nullptr),
+          m_isLogicalDomain(true),
+          m_pLeft(nullptr),
+          m_pRight(nullptr),
+          m_splitterRatio(splitterRatio)
+    {}
+
+    // For the window node only
+    CustomLayoutNode()
+        : m_splitterWidth(2.f),
+          m_level(0),
+          m_domainPos(ImVec2(0.f, 0.f)),
+          m_domainSize(ImVec2(0.f, 0.f)),
+          m_pfnCustomWindowFunc(nullptr),
+          m_isLogicalDomain(true),
+          m_pLeft(nullptr),
+          m_pRight(nullptr),
+          m_splitterRatio(0)
+    {}
 
     ~CustomLayoutNode()
     {
@@ -478,58 +495,26 @@ public:
     ImVec2 GetDomainPos() const { return m_domainPos; }
     ImVec2 GetDomainSize() const { return m_domainSize; }
     uint32_t GetLevel() const { return m_level; }
-    float GetSplitterStartCoord() const { return m_splitterStartCoordinate; }
+    float GetSplitterStartCoord() const 
+    {
+        if (m_level % 2 == 1)
+        {
+            return m_domainPos.x + m_splitterRatio * m_domainSize.x;
+        }
+        else
+        {
+            return m_domainPos.y + m_splitterRatio * m_domainSize.y;
+        }
+    }
+    float GetSplitterWidth() const { return m_splitterWidth; }
     bool IsLogicalDomain() const { return m_isLogicalDomain; }
 
     void SetDomainPos(ImVec2 pos) { m_domainPos = pos; }
     void SetDomainSize(ImVec2 size) { m_domainSize = size; }
-    void SetSplitterStartCoord(float coord) { m_splitterStartCoordinate = coord; }
+
+    // TODO: When setting children, we can set their level number automatically.
     void SetLeftChild(CustomLayoutNode* pNode) { m_pLeft = pNode; }
     void SetRightChild(CustomLayoutNode* pNode) { m_pRight = pNode; }
-
-    ImVec2 GetSplitterPos() 
-    { 
-        if (m_isLogicalDomain)
-        {
-            if (m_level % 2 == 1)
-            {
-                // Left-right splitter
-                return ImVec2(m_domainPos.x + m_splitterStartCoordinate, m_domainPos.y);
-            }
-            else
-            {
-                // Top-down splitter
-                return ImVec2(m_domainPos.x, m_domainPos.y + m_splitterStartCoordinate);
-            }
-        }
-        else
-        {
-            std::cerr << "NOTE in GetSplitterPos(): This is not a splitter." << std::endl;
-            return ImVec2(-1.f, -1.f);
-        }
-    }
-
-    ImVec2 GetSplitterSize()
-    {
-        if (m_isLogicalDomain)
-        {
-            if (m_level % 2 == 1)
-            {
-                // Left-right splitter
-                return ImVec2(m_splitterWidth, m_domainSize.y);
-            }
-            else
-            {
-                // Top-down splitter
-                return ImVec2(m_domainSize.x, m_splitterWidth);
-            }
-        }
-        else
-        {
-            std::cerr << "NOTE in GetSplitterPos(): This is not a splitter." << std::endl;
-            return ImVec2(-1.f, -1.f);
-        }
-    }
 
     void BeginEndNodeAndChildren()
     {
@@ -566,35 +551,6 @@ public:
         ImVec2 newSize)
     {
         // Resize this node.
-        float oldSplittedAxisLen = -1.f;
-        float oldSplittedAxisPos = -1.f;
-
-        float newSplittedAxisLen = -1.f;
-        float newSplittedAxisPos = -1.f;
-
-        if (m_level % 2 == 1)
-        {
-            oldSplittedAxisLen = m_domainSize.x;
-            oldSplittedAxisPos = m_domainPos.x;
-
-            newSplittedAxisLen = newSize.x;
-            newSplittedAxisPos = newPos.x;
-        }
-        else
-        {
-            oldSplittedAxisLen = m_domainSize.y;
-            oldSplittedAxisPos = m_domainPos.y;
-
-            newSplittedAxisLen = newSize.y;
-            newSplittedAxisPos = newPos.y;
-        }
-
-        if (m_isLogicalDomain)
-        {
-            float ratio = (GetSplitterStartCoord() - oldSplittedAxisPos) / oldSplittedAxisLen;
-            m_splitterStartCoordinate = newSplittedAxisPos + ratio * newSplittedAxisLen;
-        }        
-        
         m_domainPos = newPos;
         m_domainSize = newSize;
 
@@ -602,24 +558,24 @@ public:
         // call their resize function.
         if (m_isLogicalDomain)
         {
-            ImVec2 splitterPos = GetSplitterPos();
-            ImVec2 splitterSize = GetSplitterSize();
-
+            float splitterStartCoordinate = GetSplitterStartCoord();
+            float splitterWidth = GetSplitterWidth();
             if (m_level % 2 == 1)
             {
-                m_pLeft->ResizeNodeAndChildren(m_domainPos, ImVec2(splitterPos.x - m_domainPos.x, m_domainSize.y));
-                m_pRight->ResizeNodeAndChildren(ImVec2(splitterPos.x + splitterSize.x, m_domainPos.y),
-                                                ImVec2(m_domainSize.x - (splitterPos.x - m_domainPos.x + splitterSize.x),
+                m_pLeft->ResizeNodeAndChildren(m_domainPos, ImVec2(splitterStartCoordinate - m_domainPos.x, m_domainSize.y));
+                m_pRight->ResizeNodeAndChildren(ImVec2(splitterStartCoordinate + splitterWidth, m_domainPos.y),
+                                                ImVec2(m_domainSize.x - 
+                                                       (splitterStartCoordinate - m_domainPos.x + splitterWidth),
                                                        m_domainSize.y));
             }
             else
             {
                 m_pLeft->ResizeNodeAndChildren(m_domainPos, ImVec2(m_domainSize.x, 
-                                                                   m_splitterStartCoordinate - m_domainPos.y));
-                m_pRight->ResizeNodeAndChildren(ImVec2(m_domainPos.x, m_splitterStartCoordinate + splitterSize.y), 
+                                                                   splitterStartCoordinate - m_domainPos.y));
+                m_pRight->ResizeNodeAndChildren(ImVec2(m_domainPos.x, splitterStartCoordinate + splitterWidth),
                                                 ImVec2(m_domainSize.x,
                                                        m_domainSize.y - 
-                                                       (m_splitterStartCoordinate - m_domainPos.y + splitterSize.y)));
+                                                       (splitterStartCoordinate - m_domainPos.y + splitterWidth)));
             }
         }
         
@@ -646,7 +602,6 @@ private:
     ImVec2 m_domainPos;  
     ImVec2 m_domainSize;
 
-    float m_splitterStartCoordinate;
     float m_splitterRatio;
 
     const float m_splitterWidth;
@@ -662,14 +617,12 @@ class CustomLayout
 public:
     CustomLayout()
         : m_pRoot(nullptr),
-          m_splitterXCoordinate(-1.f),
+          m_pHeldSplitterDomain(nullptr),
           m_splitterHeld(false),
           m_splitterBottonDownDelta(ImVec2(0.f, 0.f)),
           m_lastViewport(ImVec2(0.f, 0.f)),
           m_heldMouseCursor(0)
-    {
-        
-    }
+    {}
 
     // A splitter in middle. Thin right window and wider left window.
     void TestingLayout()
@@ -680,10 +633,7 @@ public:
         // interaction. BeginEndNodeAndChildren(Current Cursior). Finally test the splitter build (BuildWindows()).
 
         // Central domain and its splitter.
-        m_pRoot = new CustomLayoutNode(true, 1, pViewport->WorkPos, pViewport->WorkSize, 0.8f * pViewport->WorkSize.x);
-
-        ImVec2 splitterPos = m_pRoot->GetSplitterPos();
-        ImVec2 splitterSize = m_pRoot->GetSplitterSize();
+        m_pRoot = new CustomLayoutNode(true, 1, pViewport->WorkPos, pViewport->WorkSize, 0.8f);
 
         m_pRoot->SetLeftChild(new CustomLayoutNode(false, 2, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BasicTestLeftWindow));
         m_pRoot->SetRightChild(new CustomLayoutNode(false, 2, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BasicTestRightWindow));
@@ -695,32 +645,20 @@ public:
         ImGuiViewport* pViewport = ImGui::GetMainViewport();
 
         // Blender default GUI layout
-        m_pRoot = new CustomLayoutNode(true, 1, pViewport->WorkPos, pViewport->WorkSize, 0.8f * pViewport->WorkSize.x);
-
-        ImVec2 rootSplitterPos = m_pRoot->GetSplitterPos();
-        ImVec2 rootSplitterSize = m_pRoot->GetSplitterSize();
+        m_pRoot = new CustomLayoutNode(true, 1, pViewport->WorkPos, pViewport->WorkSize, 0.8f);
 
         // Left and right splitter
-        m_pRoot->SetLeftChild(new CustomLayoutNode(true, 2, pViewport->WorkPos,
-                                                   ImVec2(rootSplitterPos.x, rootSplitterSize.y), 
-                                                   0.8f * pViewport->WorkSize.y));
-
-        m_pRoot->SetRightChild(new CustomLayoutNode(true, 2, ImVec2(rootSplitterPos.x + rootSplitterSize.x, rootSplitterPos.y),
-                                                    ImVec2(pViewport->WorkSize.x - rootSplitterPos.x - rootSplitterSize.x,
-                                                           rootSplitterSize.y), 0.3f * pViewport->WorkSize.y));
+        m_pRoot->SetLeftChild(new CustomLayoutNode(true, 2, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), 0.8f));
+        m_pRoot->SetRightChild(new CustomLayoutNode(true, 2, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), 0.3f));
 
         // Left splitter's top and bottom windows
         CustomLayoutNode* pLeftDomain = m_pRoot->GetLeftChild();
-        ImVec2 leftSplitterPos = pLeftDomain->GetSplitterPos();
-        ImVec2 leftSplitterSize = pLeftDomain->GetSplitterSize();
 
         pLeftDomain->SetLeftChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestLeftUpWindow));
         pLeftDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestLeftDownWindow));
         
         // Right splitter's top and bottom windows
         CustomLayoutNode* pRightDomain = m_pRoot->GetRightChild();
-        ImVec2 rightSplitterPos = pRightDomain->GetSplitterPos();
-        ImVec2 rightSplitterSize = pRightDomain->GetSplitterSize();
 
         pRightDomain->SetLeftChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestRightUpWindow));
         pRightDomain->SetRightChild(new CustomLayoutNode(false, 3, ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), -1.f, BlenderStyleTestRightDownWindow));
@@ -797,8 +735,6 @@ public:
     }
 
     CustomLayoutNode* m_pRoot;
-
-    float m_splitterXCoordinate;
 
     bool m_splitterHeld;
     ImVec2 m_splitterBottonDownDelta;
@@ -1005,8 +941,8 @@ int main(int, char**)
         
         if (firstFrame)
         {
-            // myLayout.TestingLayout();
-            myLayout.BlenderStartLayout();
+            myLayout.TestingLayout();
+            // myLayout.BlenderStartLayout();
             firstFrame = false;
         }
         
