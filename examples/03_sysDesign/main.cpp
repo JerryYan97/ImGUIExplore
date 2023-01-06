@@ -591,7 +591,45 @@ public:
 
     CustomLayoutNode* GetHoverSplitter()
     {
+        // Get splitter pos
+        ImVec2 splitterMin;
+        ImVec2 splitterMax;
 
+        constexpr float SplitterWidthPadding = 2.f;
+        
+        if (m_level % 2 == 1)
+        {
+            splitterMin.x = m_domainPos.x + m_splitterRatio * m_domainSize.x - SplitterWidthPadding;
+            splitterMin.y = m_domainPos.y;
+            splitterMax.x = splitterMin.x + m_splitterWidth + SplitterWidthPadding;
+            splitterMax.y = m_domainPos.y + m_domainSize.y;
+        }
+        else
+        {
+            splitterMin.x = m_domainPos.x;
+            splitterMin.y = m_domainPos.y + m_splitterRatio * m_domainSize.y - SplitterWidthPadding;
+            splitterMax.x = m_domainPos.x + m_domainSize.x;
+            splitterMax.y = splitterMin.y + m_splitterWidth + SplitterWidthPadding;
+        }
+
+        if (ImGui::IsMouseHoveringRect(splitterMin, splitterMax, false))
+        {
+            return this;
+        }
+        else
+        {
+            if (m_level % 2 == 1)
+            {
+                if (ImGui::IsMouseHoveringRect(m_domainPos, ImVec2(splitterMin.x, splitterMax.y), false))
+                {
+                    return m_pLeft->GetHoverSplitter();
+                }
+                else
+                {
+                    return m_pRight->GetHoverSplitter();
+                }
+            }
+        }
     }
 
     void BuildWindows()
@@ -684,9 +722,9 @@ public:
         }
 
         // Dealing with the mouse interactions.
-        //if (m_splitterHeld == false)
-        //{
-            /* TODO: Impl and test the viewport resize logic first.
+        if (m_splitterHeld == false)
+        {
+            /* TODO: Impl and test the viewport resize logic first.*/
             CustomLayoutNode* pSplitterDomain = m_pRoot->GetHoverSplitter();
             if (pSplitterDomain)
             {
@@ -698,6 +736,7 @@ public:
                 isLeftRightSplitter ? ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW) : 
                                       ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
 
+                /*
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
                 {
                     m_splitterHeld = true;
@@ -708,22 +747,13 @@ public:
                     
                     m_pHeldSplitterDomain = pSplitterDomain;
                 }
+                */
             }
-            */
-            // Deal with viewport resize
-            /*
-            if ((m_lastViewport.x != pViewport->WorkSize.x) || (m_lastViewport.y != pViewport->WorkSize.y))
-            {
-                float ratio = g_layout.m_splitterXCoordinate / g_layout.m_lastViewport.x;
-                g_layout.m_splitterXCoordinate = ratio * pViewport->WorkSize.x;
-                g_layout.m_splitterXCoordinate = std::clamp(g_layout.m_splitterXCoordinate, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
-            }
-            */
-        //}
-        //else
-        //{
+        }
+        else
+        {
 
-        //}
+        }
         
         // Putting windows data into Dear ImGui's state.
         if (m_pRoot != nullptr)
