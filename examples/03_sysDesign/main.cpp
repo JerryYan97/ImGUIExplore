@@ -507,10 +507,24 @@ public:
         }
     }
     float GetSplitterWidth() const { return m_splitterWidth; }
+    ImVec2 GetSplitterPos() const
+    {
+        if (m_level % 2 == 1)
+        {
+            float x = m_domainPos.x + m_splitterRatio * m_domainSize.x;
+            return ImVec2(x, m_domainPos.y);
+        }
+        else
+        {
+            float y = m_domainPos.y + m_splitterRatio * m_domainSize.y;
+            return ImVec2(m_domainPos.x, y);
+        }
+    }
     bool IsLogicalDomain() const { return m_isLogicalDomain; }
 
     void SetDomainPos(ImVec2 pos) { m_domainPos = pos; }
     void SetDomainSize(ImVec2 size) { m_domainSize = size; }
+    void SetSplitterRatio(float ratio) { m_splitterRatio = ratio; }
 
     void SetLeftChild(CustomLayoutNode* pNode) 
     {
@@ -648,7 +662,7 @@ private:
     ImVec2 m_domainPos;  
     ImVec2 m_domainSize;
 
-    float m_splitterRatio;
+    float m_splitterRatio; // (splitterPos - domainPos) / domainSize.
 
     const float m_splitterWidth;
 
@@ -665,7 +679,7 @@ public:
         : m_pRoot(nullptr),
           m_pHeldSplitterDomain(nullptr),
           m_splitterHeld(false),
-          m_splitterBottonDownDelta(ImVec2(0.f, 0.f)),
+          m_splitterBottonDownDelta(0.f),
           m_lastViewport(ImVec2(0.f, 0.f)),
           m_heldMouseCursor(0)
     {}
@@ -736,23 +750,52 @@ public:
                 isLeftRightSplitter ? ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW) : 
                                       ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
 
-                /*
+                
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
                 {
                     m_splitterHeld = true;
 
                     ImVec2 splitterPos = pSplitterDomain->GetSplitterPos();
                     ImVec2 mousePos = ImGui::GetMousePos();
-                    m_splitterBottonDownDelta = ImVec2(splitterPos.x - mousePos.x, splitterPos.y - mousePos.y);
+                    m_splitterBottonDownDelta = isLeftRightSplitter ? splitterPos.x - mousePos.x : 
+                                                                      splitterPos.y - mousePos.y;
                     
                     m_pHeldSplitterDomain = pSplitterDomain;
                 }
-                */
             }
         }
         else
         {
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+            {
+                bool isLeftRightSplitter = (m_pHeldSplitterDomain->GetLevel() % 2 == 1);
+                ImVec2 domainPos = m_pHeldSplitterDomain->GetDomainPos();
+                ImVec2 domainSize = m_pHeldSplitterDomain->GetDomainSize();
+                ImVec2 mousePos = ImGui::GetMousePos();
+                float newSplitterRatio = -1.f;
 
+                if (isLeftRightSplitter)
+                {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                    float newSplitterCoord = m_splitterBottonDownDelta + mousePos.x;
+                    float newSplitterAxisLen = newSplitterCoord - domainPos.x;
+                    newSplitterRatio = newSplitterAxisLen / domainSize.x;
+                }
+                else
+                {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                    float newSplitterCoord = m_splitterBottonDownDelta + mousePos.y;
+                    float newSplitterAxisLen = newSplitterCoord - domainPos.y;
+                    newSplitterRatio = newSplitterAxisLen / domainSize.y;
+                }
+
+                m_pHeldSplitterDomain->SetSplitterRatio(newSplitterRatio);
+                m_pHeldSplitterDomain->ResizeNodeAndChildren(domainPos, domainSize);
+            }
+            else
+            {
+                m_splitterHeld = false;
+            }
         }
         
         // Putting windows data into Dear ImGui's state.
@@ -775,7 +818,7 @@ public:
     CustomLayoutNode* m_pRoot;
 
     bool m_splitterHeld;
-    ImVec2 m_splitterBottonDownDelta;
+    float m_splitterBottonDownDelta;
     int m_heldMouseCursor; // ImGuiMouseCursor_ Enum.
     CustomLayoutNode* m_pHeldSplitterDomain;
 
@@ -985,106 +1028,6 @@ int main(int, char**)
         }
         
         myLayout.BeginEndLayout();
-
-        /*
-        if (ImGui::IsMouseHoveringRect(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y),
-                                       ImVec2(g_layout.m_splitterXCoordinate + 5.f, pViewport->WorkPos.y + pViewport->WorkSize.y), false))
-        {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-            if (g_layout.m_splitterXHeld == false)
-            {
-                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                {
-                    g_layout.m_splitterXHeld = true;
-                    g_layout.m_splitterBottonDownTLXDelta = g_layout.m_splitterXCoordinate - ImGui::GetMousePos().x;
-                }
-            }
-        }
-
-        if (g_layout.m_splitterXHeld)
-        {
-            if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-            {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-                g_layout.m_splitterXCoordinate = ImGui::GetMousePos().x + g_layout.m_splitterBottonDownTLXDelta;
-                g_layout.m_splitterXCoordinate = std::clamp(g_layout.m_splitterXCoordinate, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
-            }
-            else
-            {
-                g_layout.m_splitterXHeld = false;
-            }
-        }
-        else
-        {
-            if ((g_layout.m_lastViewport.x != pViewport->WorkSize.x) || (g_layout.m_lastViewport.y != pViewport->WorkSize.y))
-            {
-                float ratio = g_layout.m_splitterXCoordinate / g_layout.m_lastViewport.x;
-                g_layout.m_splitterXCoordinate = ratio * pViewport->WorkSize.x;
-                g_layout.m_splitterXCoordinate = std::clamp(g_layout.m_splitterXCoordinate, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
-            }
-        }
-        g_layout.m_lastViewport = pViewport->WorkSize;
-        
-
-        ImGuiWindowFlags WindowFlag = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration;
-        ImGui::SetNextWindowPos(ImVec2(pViewport->WorkPos));
-        ImVec2 leftWinSize = ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkSize.y);
-        ImGui::SetNextWindowSize(leftWinSize);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f);
-        ImGui::Begin("Window Left", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::End();
-        ImGui::PopStyleVar(1);
-
-        float rightWinStartPosX = g_layout.m_splitterXCoordinate + g_layout.m_splitterWidth;
-        ImGui::SetNextWindowPos(ImVec2(rightWinStartPosX, pViewport->WorkPos.y));
-        ImGui::SetNextWindowSize(ImVec2(pViewport->WorkSize.x - rightWinStartPosX, pViewport->WorkSize.y));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f);
-        ImGui::Begin("Window Right", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::End();
-        ImGui::PopStyleVar(1);
-        */
-
-
-        /***************/
-
-        
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-        /*
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
-        */
 
         // Rendering
         ImGui::Render();
