@@ -4,6 +4,7 @@ project(SysDesign VERSION 0.1 LANGUAGES CXX)
 
 include_directories("$ENV{VULKAN_SDK}/Include")
 include_directories(../../import/glfw/include)
+include_directories(../../)
 
 set(DearImGUIPath ../../import/imgui)
 include_directories(${DearImGUIPath})
