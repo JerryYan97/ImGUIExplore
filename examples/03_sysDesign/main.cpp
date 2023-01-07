@@ -359,10 +359,14 @@ static void glfw_error_callback(int error, const char* description)
 
 constexpr ImGuiWindowFlags TestWindowFlag = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration;
 
+
+float g_sliderFloat = 0.f;
 void BasicTestLeftWindow()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
     ImGui::Begin("Left Window", nullptr, TestWindowFlag);
+    ImGui::Text("Hello from the left window.");
+    ImGui::SliderFloat("float", &g_sliderFloat, 0.0f, 1.0f);
     ImGui::End();
     ImGui::PopStyleVar(1);
 }
@@ -371,6 +375,8 @@ void BasicTestRightWindow()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
     ImGui::Begin("Right Window", nullptr, TestWindowFlag);
+    ImGui::Text("Hello from the right window.");
+    ImGui::Button("Button");
     ImGui::End();
     ImGui::PopStyleVar(1);
 }
@@ -379,6 +385,22 @@ void BlenderStyleTestLeftUpWindow()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
     ImGui::Begin("Left-Up Window", nullptr, TestWindowFlag);
+
+    if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
+    {
+        if (ImGui::BeginTabItem("Description"))
+        {
+            ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Details"))
+        {
+            ImGui::Text("ID: 0123456789");
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
+
     ImGui::End();
     ImGui::PopStyleVar(1);
 }
@@ -387,6 +409,22 @@ void BlenderStyleTestLeftDownWindow()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
     ImGui::Begin("Left-Down Window", nullptr, TestWindowFlag);
+
+    if (ImGui::TreeNode("Basic trees"))
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            if (ImGui::TreeNode((void*)(intptr_t)i, "Child %d", i))
+            {
+                ImGui::Text("blah blah");
+                ImGui::SameLine();
+                if (ImGui::SmallButton("button")) {}
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+
     ImGui::End();
     ImGui::PopStyleVar(1);
 }
@@ -395,6 +433,23 @@ void BlenderStyleTestRightUpWindow()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
     ImGui::Begin("Right-Up Window", nullptr, TestWindowFlag);
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::TreeNode("Basic trees"))
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            if (ImGui::TreeNode((void*)(intptr_t)i, "Child %d", i))
+            {
+                ImGui::Text("blah blah");
+                ImGui::SameLine();
+                if (ImGui::SmallButton("button")) {}
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+
     ImGui::End();
     ImGui::PopStyleVar(1);
 }
@@ -403,6 +458,22 @@ void BlenderStyleTestRightDownWindow()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
     ImGui::Begin("Right-Down Window", nullptr, TestWindowFlag);
+
+    if (ImGui::TreeNode("Basic trees"))
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            if (ImGui::TreeNode((void*)(intptr_t)i, "Child %d", i))
+            {
+                ImGui::Text("blah blah");
+                ImGui::SameLine();
+                if (ImGui::SmallButton("button")) {}
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+
     ImGui::End();
     ImGui::PopStyleVar(1);
 }
@@ -563,6 +634,7 @@ int main(int, char**)
     ImGuiViewport* pViewport = ImGui::GetMainViewport();
     bool firstFrame = true;
 
+    // Choose a layout that you want to see.
     DearImGuiExt::CustomLayout myLayout(BlenderStartLayout());
     // DearImGuiExt::CustomLayout myLayout(TestingLayout());
 
