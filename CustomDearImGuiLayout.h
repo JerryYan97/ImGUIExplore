@@ -16,21 +16,22 @@ namespace DearImGuiExt
     {
     public:
         // A general constructor if users want to have a root window.
-        CustomLayoutNode(bool isLogicalDomain,
+        CustomLayoutNode(
+            bool isLogicalDomain,
             uint32_t level,
             ImVec2 domainPos,
             ImVec2 domainSize,
             float splitterRatio,
             CustomWindowFunc customFunc = nullptr)
             : m_pLeft(nullptr),
-            m_pRight(nullptr),
-            m_level(level),
-            m_domainPos(domainPos),
-            m_domainSize(domainSize),
-            m_splitterRatio(splitterRatio),
-            m_splitterWidth(2.f),
-            m_pfnCustomWindowFunc(customFunc),
-            m_isLogicalDomain(isLogicalDomain)
+              m_pRight(nullptr),
+              m_level(level),
+              m_domainPos(domainPos),
+              m_domainSize(domainSize),
+              m_splitterRatio(splitterRatio),
+              m_splitterWidth(2.f),
+              m_pfnCustomWindowFunc(customFunc),
+              m_isLogicalDomain(isLogicalDomain)
         {}
 
         // For the logical domain nodes only.
@@ -50,14 +51,14 @@ namespace DearImGuiExt
         // For the window nodes only
         CustomLayoutNode(CustomWindowFunc customFunc)
             : m_splitterWidth(2.f),
-            m_level(0),
-            m_domainPos(ImVec2(0.f, 0.f)),
-            m_domainSize(ImVec2(0.f, 0.f)),
-            m_pfnCustomWindowFunc(customFunc),
-            m_isLogicalDomain(false),
-            m_pLeft(nullptr),
-            m_pRight(nullptr),
-            m_splitterRatio(0)
+              m_level(0),
+              m_domainPos(ImVec2(0.f, 0.f)),
+              m_domainSize(ImVec2(0.f, 0.f)),
+              m_pfnCustomWindowFunc(customFunc),
+              m_isLogicalDomain(false),
+              m_pLeft(nullptr),
+              m_pRight(nullptr),
+              m_splitterRatio(0)
         {}
 
         ~CustomLayoutNode()
@@ -240,8 +241,7 @@ namespace DearImGuiExt
         ImVec2 m_domainPos;
         ImVec2 m_domainSize;
 
-        float m_splitterRatio; // (splitterPos - domainPos) / domainSize.
-
+        float       m_splitterRatio; // (splitterPos - domainPos) / domainSize.
         const float m_splitterWidth;
 
         CustomWindowFunc m_pfnCustomWindowFunc;
@@ -255,11 +255,11 @@ namespace DearImGuiExt
     public:
         explicit CustomLayout(CustomLayoutNode* root)
             : m_pRoot(root),
-            m_pHeldSplitterDomain(nullptr),
-            m_splitterHeld(false),
-            m_splitterBottonDownDelta(0.f),
-            m_lastViewport(ImVec2(0.f, 0.f)),
-            m_heldMouseCursor(0)
+              m_pHeldSplitterDomain(nullptr),
+              m_splitterHeld(false),
+              m_splitterBottonDownDelta(0.f),
+              m_lastViewport(ImVec2(0.f, 0.f)),
+              m_heldMouseCursor(0)
         {
             assert((void("ERROR: The root node pointer cannot be NULL to init CustomLayout."), root != nullptr));
         }
@@ -357,9 +357,11 @@ namespace DearImGuiExt
 
         CustomLayoutNode* m_pRoot;
 
-        bool m_splitterHeld;
+        bool  m_splitterHeld;
         float m_splitterBottonDownDelta;
-        int m_heldMouseCursor; // ImGuiMouseCursor_ Enum.
+        
+        int   m_heldMouseCursor; // ImGuiMouseCursor_ Enum.
+        
         CustomLayoutNode* m_pHeldSplitterDomain;
 
         ImVec2 m_lastViewport;

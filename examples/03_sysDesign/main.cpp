@@ -667,8 +667,6 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        /* Newly Added */
-
         // Main menu bars.
         {
             if (ImGui::BeginMainMenuBar())
@@ -689,15 +687,6 @@ int main(int, char**)
                 ImGui::EndMainMenuBar();
             }
         }
-
-        /*
-        if (firstFrame)
-        {
-            // myLayout.TestingLayout();
-            myLayout.BlenderStartLayout();
-            firstFrame = false;
-        }
-        */
         
         myLayout.BeginEndLayout();
 
