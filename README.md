@@ -6,6 +6,12 @@ Even though the docking branch of Dear ImGui is OK for layout, that is still har
 
 ![Img](./img/Capture.PNG)
 
+## Features and demos
+
+The layout system can help you manage your mouse dragging of splitters and viewport resizing with layout ratio kept. Other windows related features are totally controlled by programmers in their code by using native DearImGui API. Here is an example:
+
+![Img2](./img/CustomLayout.gif)
+
 ## Build Command
 
 Please make sure you set the `VULKAN_SDK` environment variable to your VulkanSDK path. You can bulid your project by executing the following command in an example's folder.
