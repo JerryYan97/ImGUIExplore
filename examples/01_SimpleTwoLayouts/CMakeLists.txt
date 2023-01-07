@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-set(MY_APP_NAME "SysDesign")
-project(SysDesign VERSION 0.1 LANGUAGES CXX)
+set(MY_APP_NAME "SimpleTwoLayouts")
+project(SimpleTwoLayouts VERSION 0.1 LANGUAGES CXX)
 
 include_directories("$ENV{VULKAN_SDK}/Include")
 include_directories(../../import/glfw/include)

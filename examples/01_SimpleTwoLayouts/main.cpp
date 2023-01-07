@@ -9,8 +9,7 @@
 //   the backend itself (imgui_impl_vulkan.cpp), but should PROBABLY NOT be used by your own engine/app code.
 // Read comments in imgui_impl_vulkan.h.
 
-#include "imgui.h"
-#include "imgui_internal.h"
+#include "CustomDearImGuiLayout.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 #include <stdio.h>          // printf, fprintf
@@ -356,80 +355,165 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-// Leaves are windows; All others are splitters.
-// Odd level splitters are left-right; even level splitters are top-down.
-class CustomLayoutNode
+// Custom system start
+
+constexpr ImGuiWindowFlags TestWindowFlag = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration;
+
+
+float g_sliderFloat = 0.f;
+void BasicTestLeftWindow()
 {
-public:
-    CustomLayoutNode* m_pLeft;
-    CustomLayoutNode* m_pRight;
-    CustomLayoutNode()
-        : m_pLeft(nullptr),
-          m_pRight(nullptr)
-    {}
-
-    ~CustomLayoutNode()
-    {
-        if (m_pLeft) 
-        { 
-            delete m_pLeft; 
-        }
-
-        if (m_pRight)
-        {
-            delete m_pRight;
-        }
-    }
-};
-
-class CustomLayout
-{
-public:
-    CustomLayout() 
-    { 
-        memset(this, 0, sizeof(*this));
-        m_splitterWidth = 3.f;
-    }
-
-    void BeginLayout()
-    {
-
-    }
-
-    float m_splitterXCoordinate;
-    float m_splitterWidth;
-
-    bool m_splitterXHeld;
-    float m_splitterBottonDownTLXDelta;
-
-    ImVec2 m_lastViewport;
-};
-
-CustomLayout g_layout = CustomLayout();
-
-namespace ImGui
-{
-    IMGUI_API bool BeginBottomMainMenuBar();
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Left Window", nullptr, TestWindowFlag);
+    ImGui::Text("Hello from the left window.");
+    ImGui::SliderFloat("float", &g_sliderFloat, 0.0f, 1.0f);
+    ImGui::End();
+    ImGui::PopStyleVar(1);
 }
 
-bool ImGui::BeginBottomMainMenuBar()
+void BasicTestRightWindow()
 {
-    ImGuiContext& g = *GImGui;
-    ImGuiViewportP* viewport = (ImGuiViewportP*)(void*)GetMainViewport();
-    // For the main menu bar, which cannot be moved, we honor g.Style.DisplaySafeAreaPadding to ensure text can be visible on a TV set.
-    // FIXME: This could be generalized as an opt-in way to clamp window->DC.CursorStartPos to avoid SafeArea?
-    // FIXME: Consider removing support for safe area down the line... it's messy. Nowadays consoles have support for TV calibration in OS settings.
-    g.NextWindowData.MenuBarOffsetMinVal = ImVec2(g.Style.DisplaySafeAreaPadding.x, ImMax(g.Style.DisplaySafeAreaPadding.y - g.Style.FramePadding.y, 0.0f));
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
-    float height = GetFrameHeight();
-    bool is_open = BeginViewportSideBar("##BottomMainMenuBar", viewport, ImGuiDir_Down, height, window_flags);
-    g.NextWindowData.MenuBarOffsetMinVal = ImVec2(0.0f, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Right Window", nullptr, TestWindowFlag);
+    ImGui::Text("Hello from the right window.");
+    ImGui::Button("Button");
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
 
-    if (is_open)
-        BeginMenuBar();
-    else
-        End();
-    return is_open;
+void BlenderStyleTestLeftUpWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Left-Up Window", nullptr, TestWindowFlag);
+
+    if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
+    {
+        if (ImGui::BeginTabItem("Description"))
+        {
+            ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Details"))
+        {
+            ImGui::Text("ID: 0123456789");
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
+void BlenderStyleTestLeftDownWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Left-Down Window", nullptr, TestWindowFlag);
+
+    if (ImGui::TreeNode("Basic trees"))
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            if (ImGui::TreeNode((void*)(intptr_t)i, "Child %d", i))
+            {
+                ImGui::Text("blah blah");
+                ImGui::SameLine();
+                if (ImGui::SmallButton("button")) {}
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
+void BlenderStyleTestRightUpWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Right-Up Window", nullptr, TestWindowFlag);
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::TreeNode("Basic trees"))
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            if (ImGui::TreeNode((void*)(intptr_t)i, "Child %d", i))
+            {
+                ImGui::Text("blah blah");
+                ImGui::SameLine();
+                if (ImGui::SmallButton("button")) {}
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
+void BlenderStyleTestRightDownWindow()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
+    ImGui::Begin("Right-Down Window", nullptr, TestWindowFlag);
+
+    if (ImGui::TreeNode("Basic trees"))
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            if (ImGui::TreeNode((void*)(intptr_t)i, "Child %d", i))
+            {
+                ImGui::Text("blah blah");
+                ImGui::SameLine();
+                if (ImGui::SmallButton("button")) {}
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar(1);
+}
+
+
+// A splitter in middle. Thin right window and wider left window.
+DearImGuiExt::CustomLayoutNode* TestingLayout()
+{
+    // Central domain and its splitter.
+    DearImGuiExt::CustomLayoutNode* pRoot = new DearImGuiExt::CustomLayoutNode(0.8f);
+
+    pRoot->SetLeftChild(new DearImGuiExt::CustomLayoutNode(BasicTestLeftWindow));
+    pRoot->SetRightChild(new DearImGuiExt::CustomLayoutNode(BasicTestRightWindow));
+
+    return pRoot;
+}
+
+// A vertical splitter in middle. A horizontal splitter at left. A horizontal splitter at right.
+DearImGuiExt::CustomLayoutNode* BlenderStartLayout()
+{
+    // Blender default GUI layout
+    DearImGuiExt::CustomLayoutNode* pRoot = new DearImGuiExt::CustomLayoutNode(0.8f);
+
+    // Left and right splitter
+    pRoot->SetLeftChild(new DearImGuiExt::CustomLayoutNode(0.8f));
+    pRoot->SetRightChild(new DearImGuiExt::CustomLayoutNode(0.3f));
+
+    // Left splitter's top and bottom windows
+    DearImGuiExt::CustomLayoutNode* pLeftDomain = pRoot->GetLeftChild();
+
+    pLeftDomain->SetLeftChild(new DearImGuiExt::CustomLayoutNode(BlenderStyleTestLeftUpWindow));
+    pLeftDomain->SetRightChild(new DearImGuiExt::CustomLayoutNode(BlenderStyleTestLeftDownWindow));
+
+    // Right splitter's top and bottom windows
+    DearImGuiExt::CustomLayoutNode* pRightDomain = pRoot->GetRightChild();
+
+    pRightDomain->SetLeftChild(new DearImGuiExt::CustomLayoutNode(BlenderStyleTestRightUpWindow));
+    pRightDomain->SetRightChild(new DearImGuiExt::CustomLayoutNode(BlenderStyleTestRightDownWindow));
+
+    return pRoot;
 }
 
 int main(int, char**)
@@ -547,6 +631,10 @@ int main(int, char**)
     ImGuiViewport* pViewport = ImGui::GetMainViewport();
     bool firstFrame = true;
 
+    // Choose a layout that you want to see.
+    DearImGuiExt::CustomLayout myLayout(BlenderStartLayout());
+    // DearImGuiExt::CustomLayout myLayout(TestingLayout());
+
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -576,8 +664,6 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        /* Newly Added */
-
         // Main menu bars.
         {
             if (ImGui::BeginMainMenuBar())
@@ -593,126 +679,13 @@ int main(int, char**)
                 ImGui::EndMainMenuBar();
             }
 
-            if (ImGui::BeginBottomMainMenuBar())
+            if (DearImGuiExt::BeginBottomMainMenuBar())
             {
                 ImGui::EndMainMenuBar();
             }
         }
-
-        if (firstFrame)
-        {
-            g_layout.m_splitterXCoordinate = pViewport->WorkPos.x + 0.8f * pViewport->WorkSize.x;
-            firstFrame = false;
-            g_layout.m_lastViewport = pViewport->WorkSize;
-        }
-        /*
-        ImGui::SetNextWindowPos(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y));
-        ImGui::SetNextWindowSize(ImVec2(g_layout.m_splitterWidth, pViewport->WorkSize.y));
-        ImGui::SetNextWindowBgAlpha(0.1f); // Transparent background
-        ImGuiWindowFlags SplitterFlag = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0, 0)); // Lift normal size constraint
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
-        ImGui::Begin("Splitter1", &show_another_window, SplitterFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::End();
-        ImGui::PopStyleVar(2);
-        */
         
-        if (ImGui::IsMouseHoveringRect(ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkPos.y),
-                                       ImVec2(g_layout.m_splitterXCoordinate + 5.f, pViewport->WorkPos.y + pViewport->WorkSize.y), false))
-        {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-            if (g_layout.m_splitterXHeld == false)
-            {
-                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                {
-                    g_layout.m_splitterXHeld = true;
-                    g_layout.m_splitterBottonDownTLXDelta = g_layout.m_splitterXCoordinate - ImGui::GetMousePos().x;
-                }
-            }
-        }
-
-        if (g_layout.m_splitterXHeld)
-        {
-            if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-            {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-                g_layout.m_splitterXCoordinate = ImGui::GetMousePos().x + g_layout.m_splitterBottonDownTLXDelta;
-                g_layout.m_splitterXCoordinate = std::clamp(g_layout.m_splitterXCoordinate, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
-            }
-            else
-            {
-                g_layout.m_splitterXHeld = false;
-            }
-        }
-        else
-        {
-            if ((g_layout.m_lastViewport.x != pViewport->WorkSize.x) || (g_layout.m_lastViewport.y != pViewport->WorkSize.y))
-            {
-                float ratio = g_layout.m_splitterXCoordinate / g_layout.m_lastViewport.x;
-                g_layout.m_splitterXCoordinate = ratio * pViewport->WorkSize.x;
-                g_layout.m_splitterXCoordinate = std::clamp(g_layout.m_splitterXCoordinate, 0.1f * pViewport->WorkSize.x, 0.9f * pViewport->WorkSize.x);
-            }
-        }
-        g_layout.m_lastViewport = pViewport->WorkSize;
-        
-
-        ImGuiWindowFlags WindowFlag = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration;
-        ImGui::SetNextWindowPos(ImVec2(pViewport->WorkPos));
-        ImVec2 leftWinSize = ImVec2(g_layout.m_splitterXCoordinate, pViewport->WorkSize.y);
-        ImGui::SetNextWindowSize(leftWinSize);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
-        ImGui::Begin("Window Left", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::End();
-        ImGui::PopStyleVar(1);
-
-        float rightWinStartPosX = g_layout.m_splitterXCoordinate + g_layout.m_splitterWidth;
-        ImGui::SetNextWindowPos(ImVec2(rightWinStartPosX, pViewport->WorkPos.y));
-        ImGui::SetNextWindowSize(ImVec2(pViewport->WorkSize.x - rightWinStartPosX, pViewport->WorkSize.y));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.f);
-        ImGui::Begin("Window Right", &show_another_window, WindowFlag);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::End();
-        ImGui::PopStyleVar(1);
-
-        /***************/
-
-        
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-        /*
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
-        */
+        myLayout.BeginEndLayout();
 
         // Rendering
         ImGui::Render();
