@@ -632,8 +632,8 @@ int main(int, char**)
     bool firstFrame = true;
 
     // Choose a layout that you want to see.
-    DearImGuiExt::CustomLayout myLayout(BlenderStartLayout());
-    // DearImGuiExt::CustomLayout myLayout(TestingLayout());
+    // DearImGuiExt::CustomLayout myLayout(BlenderStartLayout());
+    DearImGuiExt::CustomLayout myLayout(TestingLayout());
 
     // Main loop
     while (!glfwWindowShouldClose(window))

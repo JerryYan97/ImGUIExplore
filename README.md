@@ -12,9 +12,11 @@ The layout system can help you manage your mouse dragging of splitters and viewp
 
 ![Img2](./img/CustomLayout.gif)
 
-## Build Command
+## Building and configuration
 
-Please make sure you set the `VULKAN_SDK` environment variable to your VulkanSDK path. You can bulid your project by executing the following command in an example's folder.
+The example under the `examples` folder relies on GLFW, DearImGUI and Vulkan. But, the header, which is the core of this project, doesn't necessarily rely on any DearImGUI backend like GLFW or Vulkan. So, you can choose any backend as you like or submit a PR to provide an example in the backend of your interest.
+
+In order to build the `01_SimpleTwoLayouts`, please make sure you set the `VULKAN_SDK` environment variable to your VulkanSDK path. In addition, you also need to build the GLFW by yourself (Please build the glfw under the `import/glfw/build/src/Debug/` or you'll need to modify the CMake script). After fulfilling prerequisites, you can bulid your project by executing the following command in an example's folder.
 
 `cmake -B build -G "Visual Studio 16 2019"`
 
