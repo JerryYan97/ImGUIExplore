@@ -189,6 +189,11 @@ namespace DearImGuiExt
 
         CustomLayoutNode* GetHoverSplitter()
         {
+            if (m_isLogicalDomain == false)
+            {
+                return nullptr;
+            }
+
             // Get splitter pos
             ImVec2 splitterMin;
             ImVec2 splitterMax;
@@ -218,7 +223,20 @@ namespace DearImGuiExt
             {
                 if (m_level % 2 == 1)
                 {
+                    // Left-Right
                     if (ImGui::IsMouseHoveringRect(m_domainPos, ImVec2(splitterMin.x, splitterMax.y), false))
+                    {
+                        return m_pLeft->GetHoverSplitter();
+                    }
+                    else
+                    {
+                        return m_pRight->GetHoverSplitter();
+                    }
+                }
+                else
+                {
+                    // Top-Down
+                    if (ImGui::IsMouseHoveringRect(m_domainPos, ImVec2(splitterMax.x, splitterMin.y), false))
                     {
                         return m_pLeft->GetHoverSplitter();
                     }
@@ -278,7 +296,6 @@ namespace DearImGuiExt
             // Dealing with the mouse interactions.
             if (m_splitterHeld == false)
             {
-                /* TODO: Impl and test the viewport resize logic first.*/
                 CustomLayoutNode* pSplitterDomain = m_pRoot->GetHoverSplitter();
                 if (pSplitterDomain)
                 {
