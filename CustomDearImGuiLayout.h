@@ -311,9 +311,8 @@ namespace DearImGuiExt
         {
             assert((void("ERROR: The root node pointer cannot be NULL to init CustomLayout."), root != nullptr));
         }
-
-        // Update Dear ImGUI state
-        void BeginEndLayout()
+        
+        void ResizeAll()
         {
             ImGuiViewport* pViewport = ImGui::GetMainViewport();
 
@@ -321,7 +320,14 @@ namespace DearImGuiExt
             if ((pViewport->WorkSize.x != m_lastViewport.x) || (pViewport->WorkSize.y != m_lastViewport.y))
             {
                 m_pRoot->ResizeNodeAndChildren(pViewport->WorkPos, pViewport->WorkSize);
+                m_lastViewport = pViewport->WorkSize;
             }
+        }
+
+        // Update Dear ImGUI state
+        void BeginEndLayout()
+        {
+            ResizeAll();
 
             // Dealing with the mouse interactions.
             if (m_splitterHeld == false)
@@ -390,8 +396,6 @@ namespace DearImGuiExt
             {
                 m_pRoot->BeginEndNodeAndChildren();
             }
-
-            m_lastViewport = pViewport->WorkSize;
         }
 
         ~CustomLayout()
