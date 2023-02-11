@@ -490,24 +490,24 @@ DearImGuiExt::CustomLayoutNode* MultiLevelsLayout()
     DearImGuiExt::CustomLayoutNode* pRoot = new DearImGuiExt::CustomLayoutNode(0.8f);
 
     // Left and right splitter
-    pRoot->SetLeftChild(new DearImGuiExt::CustomLayoutNode(0.8f));
-    pRoot->SetRightChild(new DearImGuiExt::CustomLayoutNode(0.3f));
+    pRoot->CreateLeftChild(0.8f);
+    pRoot->CreateRightChild(0.3f);
 
     // Left splitter's top and bottom windows
     DearImGuiExt::CustomLayoutNode* pLeftDomain = pRoot->GetLeftChild();
 
-    pLeftDomain->SetLeftChild(new DearImGuiExt::CustomLayoutNode(MultiLevelsLeftUpWindow));
-    pLeftDomain->SetRightChild(new DearImGuiExt::CustomLayoutNode(0.5f));
+    pLeftDomain->CreateLeftChild(MultiLevelsLeftUpWindow);
+    pLeftDomain->CreateRightChild(0.5f);
 
     DearImGuiExt::CustomLayoutNode* pLeftDownDomain = pLeftDomain->GetRightChild();
-    pLeftDownDomain->SetLeftChild(new DearImGuiExt::CustomLayoutNode(MultiLevelsLeftDown1Window));
-    pLeftDownDomain->SetRightChild(new DearImGuiExt::CustomLayoutNode(MultiLevelsLeftDown2Window));
+    pLeftDownDomain->CreateLeftChild(MultiLevelsLeftDown1Window);
+    pLeftDownDomain->CreateRightChild(MultiLevelsLeftDown2Window);
 
     // Right splitter's top and bottom windows
     DearImGuiExt::CustomLayoutNode* pRightDomain = pRoot->GetRightChild();
 
-    pRightDomain->SetLeftChild(new DearImGuiExt::CustomLayoutNode(MultiLevelsRightUpWindow));
-    pRightDomain->SetRightChild(new DearImGuiExt::CustomLayoutNode(MultiLevelsRightDownWindow));
+    pRightDomain->CreateLeftChild(MultiLevelsRightUpWindow);
+    pRightDomain->CreateRightChild(MultiLevelsRightDownWindow);
 
     return pRoot;
 }

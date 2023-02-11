@@ -485,8 +485,8 @@ DearImGuiExt::CustomLayoutNode* TestingLayout()
     // Central domain and its splitter.
     DearImGuiExt::CustomLayoutNode* pRoot = new DearImGuiExt::CustomLayoutNode(0.8f);
 
-    pRoot->SetLeftChild(new DearImGuiExt::CustomLayoutNode(BasicTestLeftWindow));
-    pRoot->SetRightChild(new DearImGuiExt::CustomLayoutNode(BasicTestRightWindow));
+    pRoot->CreateLeftChild(BasicTestLeftWindow);
+    pRoot->CreateRightChild(BasicTestRightWindow);
 
     return pRoot;
 }
@@ -498,20 +498,20 @@ DearImGuiExt::CustomLayoutNode* BlenderStartLayout()
     DearImGuiExt::CustomLayoutNode* pRoot = new DearImGuiExt::CustomLayoutNode(0.8f);
 
     // Left and right splitter
-    pRoot->SetLeftChild(new DearImGuiExt::CustomLayoutNode(0.8f));
-    pRoot->SetRightChild(new DearImGuiExt::CustomLayoutNode(0.3f));
+    pRoot->CreateLeftChild(0.8f);
+    pRoot->CreateRightChild(0.3f);
 
     // Left splitter's top and bottom windows
     DearImGuiExt::CustomLayoutNode* pLeftDomain = pRoot->GetLeftChild();
 
-    pLeftDomain->SetLeftChild(new DearImGuiExt::CustomLayoutNode(BlenderStyleTestLeftUpWindow));
-    pLeftDomain->SetRightChild(new DearImGuiExt::CustomLayoutNode(BlenderStyleTestLeftDownWindow));
+    pLeftDomain->CreateLeftChild(BlenderStyleTestLeftUpWindow);
+    pLeftDomain->CreateRightChild(BlenderStyleTestLeftDownWindow);
 
     // Right splitter's top and bottom windows
     DearImGuiExt::CustomLayoutNode* pRightDomain = pRoot->GetRightChild();
 
-    pRightDomain->SetLeftChild(new DearImGuiExt::CustomLayoutNode(BlenderStyleTestRightUpWindow));
-    pRightDomain->SetRightChild(new DearImGuiExt::CustomLayoutNode(BlenderStyleTestRightDownWindow));
+    pRightDomain->CreateLeftChild(BlenderStyleTestRightUpWindow);
+    pRightDomain->CreateRightChild(BlenderStyleTestRightDownWindow);
 
     return pRoot;
 }
@@ -632,8 +632,8 @@ int main(int, char**)
     bool firstFrame = true;
 
     // Choose a layout that you want to see.
-    // DearImGuiExt::CustomLayout myLayout(BlenderStartLayout());
-    DearImGuiExt::CustomLayout myLayout(TestingLayout());
+    DearImGuiExt::CustomLayout myLayout(BlenderStartLayout());
+    // DearImGuiExt::CustomLayout myLayout(TestingLayout());
 
     // Main loop
     while (!glfwWindowShouldClose(window))

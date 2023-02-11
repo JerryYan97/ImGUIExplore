@@ -8,6 +8,7 @@
 // Positions and sizes are handled by the layout.
 typedef void (*CustomWindowFunc)();
 
+// TODO: Constructor changes to RAII style. User shouldn't be responsible for creating new node.
 namespace DearImGuiExt 
 {
     // Leaves are windows; All others are logical domain.
@@ -110,15 +111,31 @@ namespace DearImGuiExt
         void SetDomainSize(ImVec2 size) { m_domainSize = size; }
         void SetSplitterRatio(float ratio) { m_splitterRatio = ratio; }
 
-        void SetLeftChild(CustomLayoutNode* pNode)
+        void CreateLeftChild(float ratio)
         {
-            m_pLeft = pNode;
+            assert((void("ERROR: Only logical domain can have children."), m_isLogicalDomain == true));
+            m_pLeft = new CustomLayoutNode(ratio);
             m_pLeft->m_level = m_level + 1;
         }
 
-        void SetRightChild(CustomLayoutNode* pNode)
+        void CreateLeftChild(CustomWindowFunc windowFunc)
         {
-            m_pRight = pNode;
+            assert((void("ERROR: Only logical domain can have children."), m_isLogicalDomain == true));
+            m_pLeft = new CustomLayoutNode(windowFunc);
+            m_pLeft->m_level = m_level + 1;
+        }
+
+        void CreateRightChild(float ratio)
+        {
+            assert((void("ERROR: Only logical domain can have children."), m_isLogicalDomain == true));
+            m_pRight = new CustomLayoutNode(ratio);
+            m_pRight->m_level = m_level + 1;
+        }
+
+        void CreateRightChild(CustomWindowFunc windowFunc)
+        {
+            assert((void("ERROR: Only logical domain can have children."), m_isLogicalDomain == true));
+            m_pRight = new CustomLayoutNode(windowFunc);
             m_pRight->m_level = m_level + 1;
         }
 
@@ -249,6 +266,19 @@ namespace DearImGuiExt
         }
 
     private:
+        void SetLeftChild(CustomLayoutNode* pNode)
+        {
+            m_pLeft = pNode;
+            m_pLeft->m_level = m_level + 1;
+        }
+
+        void SetRightChild(CustomLayoutNode* pNode)
+        {
+            m_pRight = pNode;
+            m_pRight->m_level = m_level + 1;
+        }
+
+
         CustomLayoutNode* m_pLeft;  // Or top for the even level splitters.
         CustomLayoutNode* m_pRight; // Or down for the even level splitters.
         uint32_t          m_level;  // Used to determine whether it is a vertical splitter or a horizontal splitter. 
